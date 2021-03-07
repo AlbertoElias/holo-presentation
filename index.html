@@ -12,6 +12,7 @@
   <body class="app">
     <a-scene cursor="rayOrigin: mouse" raycaster="far: 20; objects: .collidable">
       <a-assets id="assets"></a-assets>
+      <a-entity camera look-controls wasd-controls="acceleration:30" position="0 1.6 0"></a-entity>
 
       <a-plane position="0 0 0" rotation="-90 0 0" width="8" height="8" color="#7BC8A4"></a-plane>
       <a-sky color="#ECECEC"></a-sky>
