@@ -1,0 +1,20 @@
+{
+  "name": "3d-message",
+  "version": "1.0.0",
+  "description": "",
+  "author": "",
+  "license": "ISC",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "serve": "vite preview"
+  },
+  "dependencies": {
+    "emoji-picker-element": "^1.4.0",
+    "grapheme-breaker-mjs": "^1.0.4",
+    "three": "^0.125.2"
+  },
+  "devDependencies": {
+    "vite": "^2.0.1"
+  }
+}
