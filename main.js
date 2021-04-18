@@ -4,6 +4,7 @@ import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader'
 import * as Utils from './src/utils'
 import './src/obj-wrapper'
 import './src/fixed'
+import './src/container'
 
 const frontVector = new THREE.Vector3(0, 0, 1)
 const textUploaderEl = document.body.querySelector('.textUploader')
@@ -50,12 +51,20 @@ function generate3dEmojiFromSvg (emojiHex) {
 function addAssetToScene (entity, objectType) {
   entity.setAttribute('obj-wrapper', `type: ${objectType}`)
   const sceneEl = document.querySelector('a-scene')
-  const cameraQuaternion = sceneEl.camera.el.object3D.quaternion
-  const cameraPosition = sceneEl.camera.el.object3D.position
-  const position = frontVector.clone().applyQuaternion(cameraQuaternion).multiplyScalar(-1)
-  const {x, y, z} = cameraPosition.clone().add(position)
-  entity.setAttribute('position', `${x} ${y} ${z}`)
-  sceneEl.appendChild(entity)
+
+  const selectedContainerId = sceneEl.getAttribute('fixed').selectedContainer
+  const selectedContainer = selectedContainerId ? sceneEl.querySelector(`#${selectedContainerId}`) : null
+  console.log(selectedContainer, selectedContainerId)
+  if (selectedContainer) {
+    selectedContainer.appendChild(entity)
+  } else {
+    const cameraQuaternion = sceneEl.camera.el.object3D.quaternion
+    const cameraPosition = sceneEl.camera.el.object3D.position
+    const position = frontVector.clone().applyQuaternion(cameraQuaternion).multiplyScalar(-2)
+    const {x, y, z} = cameraPosition.clone().add(position)
+    entity.setAttribute('position', `${x} ${y} ${z}`)
+    sceneEl.appendChild(entity)
+  }
 }
 
 function processText (text) {
@@ -89,10 +98,15 @@ document.addEventListener('keyup', (event) => {
       textUploaderEl.value = ''
       textUploaderEl.classList.remove('textUploader--visible')
       textUploaderEl.blur()
-      document.body.querySelector('a-scene').removeAttribute('fixed')
+      document.body.querySelector('a-scene').setAttribute('fixed', 'selectedContainer:;')
+      for (const obj of [...document.querySelectorAll('[obj-wrapper]')]) {
+        obj.emit('objWrapper.deactivate')
+      }
       break
-    case 'Shift':
-      document.body.querySelector('a-scene').setAttribute('fixed', '')
+    case 'c':
+      const containerEl = document.createElement('a-entity')
+      containerEl.setAttribute('container', '')
+      addAssetToScene(containerEl, 'container')
       break
     default:
       return
