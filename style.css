@@ -4,6 +4,10 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+.dropzone {
+  display: none;
+}
+
 .interface {
   position: absolute;
   top: 0;

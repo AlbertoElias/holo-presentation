@@ -4,22 +4,22 @@
     <meta charset="utf-8">
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Hello, WebVR! • A-Frame</title>
+    <title>Holo</title>
     <meta name="description" content="Hello, WebVR! • A-Frame">
-    <script src="https://aframe.io/releases/1.2.0/aframe.min.js"></script>
-    <script src="https://unpkg.com/aframe-environment-component@1.2.0/dist/aframe-environment-component.min.js"></script>
+    <script src="/aframe.min.js"></script>
+    <script src="/aframe-environment-component.min.js"></script>
     <link rel="stylesheet" href="style.css">
   </head>
   <body class="app">
-    <a-scene cursor="rayOrigin: mouse" raycaster="far: 20; objects: .collidable" keyboard-shortcuts="enterVR: false" fixed>
+    <a-scene cursor="rayOrigin: mouse" raycaster="far: 20; objects: .collidable" keyboard-shortcuts="enterVR: false" holo>
       <a-assets id="assets"></a-assets>
-      <a-entity camera look-controls wasd-controls="acceleration:30" position="0 1.6 0"></a-entity>
+      <a-entity camera="fov: 80" look-controls wasd-controls="acceleration:30" position="0 1.6 0"></a-entity>
       <a-entity environment="
         ground: canyon;
         groundTexture: walkernoise;
         grid: none;
         groundColor: #C09891;
-        groundColor2: #394032;e
+        groundColor2: #394032;
         groundYScale: 20;
         playArea: 1.5;
         dressing: trees;
@@ -36,6 +36,7 @@
         <input class="textUploader" type="text">
       </div>
     </a-scene>
+    <input type="file" class="dropzone">
     <script type="module" src="/main.js"></script>
   </body>
 </html>

@@ -1,16 +1,17 @@
-import { getChildObjects, getParentObjects } from './utils'
-
 const frontVector = new THREE.Vector3(0, 0, 1)
 
 export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
   schema: {
-    type: {type: 'string', default: ''},
-    active: {type: 'boolean', default: false}
+    // "text" | "emoji" | "container" | "root-container" | "image" | "gltf"
+    type: { type: 'string', default: '' },
+    id: { type: 'string', default: '' },
+    asset: { type: 'map', default: `{ main: '' }` },
+    active: { type: 'boolean', default: false }
   },
 
   init: function () {
     this.el.classList.add('collidable')
-    this.active = false
+    this.el.id = this.data.id || Math.random().toString(36).replace(/[^a-z]+/g, '')
     this.mouse = new THREE.Vector2()
     this.cameraPosition = new THREE.Vector3()
     this._phi = 0
@@ -26,43 +27,47 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
 
     this.el.addEventListener('click', this.clickHandler)
     this.el.addEventListener('objWrapper.deactivate', () => {
+      console.log(1)
       this.el.setAttribute('obj-wrapper', 'active: false')
+      console.log(2)
       this.el.removeEventListener('mousedown', this.mouseDownHandler)
       this.el.removeEventListener('mouseup', this.mouseUpHandler)
+      console.log(3)
     })
+    
+    if (this.isContainer()) {
+      this.clickHandler()
+    }
   },
 
   update: function (oldData) {
-    if (Object.keys(oldData).length === 0) { return }
-
     const data = this.data
 
-    if (data.active !== oldData.active) {
-      if (data.active) {
+    if (data.active) {
+      console.log(1.5)
+      if (!this.isContainer()) {
         this.el.setObject3D('box', this.box)
-        this.el.setObject3D('resize', this.resize)
-        this.el.setObject3D('move', this.move)
-        this.el.setObject3D('rotate', this.rotate)
-      } else {
-        console.log('removing')
-        !this.el.hasAttribute('container') && this.el.removeObject3D('box')
-        this.el.removeObject3D('resize', this.resize)
-        this.el.removeObject3D('move', this.move)
-        this.el.removeObject3D('rotate', this.rotate)
       }
+      this.el.setObject3D('resize', this.resize)
+      this.el.setObject3D('move', this.move)
+      this.el.setObject3D('rotate', this.rotate)
+    } else if (oldData.active) {
+      console.log(1.5)
+      if (!this.isContainer()) {
+        this.el.removeObject3D('box')
+      }
+      this.el.removeObject3D('resize', this.resize)
+      this.el.removeObject3D('move', this.move)
+      this.el.removeObject3D('rotate', this.rotate)
     }
   },
 
   tick: function () {
-    const isFixed = !!this.el.sceneEl.getAttribute('fixed').selectedContainer
+    const isFixed = this.el.sceneEl.getAttribute('holo').isFixed
 
     if (!this.box) {
       this.setUpBox()
       return
-    }
-
-    if (this.data.active) {
-      this.updateBox()
     }
 
     if (this.activeAction?.name === 'move') {
@@ -82,10 +87,27 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
 
   remove: function () {
     this.el.removeEventListener('click', this.clickHandler)
-    this.el.removeObject3D('box')
+    if (!this.isContainer()) {
+      this.el.removeObject3D('box')
+    }
     this.el.removeObject3D('resize', this.resize)
     this.el.removeObject3D('move', this.move)
     this.el.removeObject3D('rotate', this.rotate)
+  },
+
+  clickHandler: function (event) {
+    event?.stopPropagation()
+    this.deactivateAllObjWrappers()
+
+    if (!this.data.active) {
+      this.el.sceneEl.setAttribute('holo', {
+        selectedContainer: this.el.id,
+        isFixed: this.isContainer()
+      })
+      this.el.setAttribute('obj-wrapper', 'active: true')
+      this.el.addEventListener('mousedown', this.mouseDownHandler)
+      this.el.addEventListener('mouseup', this.mouseUpHandler)
+    }
   },
 
   mouseMoveHandler: function (event) {
@@ -99,42 +121,16 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
   
     switch (this.activeAction.name) {
       case 'resize': {
-        const childEls = getChildObjects(this.el)
-        const parentEls = getParentObjects(childEls)
-        const object = childEls[0].getObject3D('text') || childEls[0].getObject3D('mesh')
-
-        function attachEls (childEls, parentEls, attach) {
-          for (let i = 0; i < childEls.length; i++) {
-            const childEl = childEls[i]
-            if (Array.isArray(childEl)) {
-              attachEls(childEl, parentEls[i], attach)
-            } else {
-              const mesh = childEl.getObject3D('text') || childEl.getObject3D('mesh')
-              if (object !== mesh) {
-                if (attach) {
-                  object.attach(mesh)
-                } else {
-                  parentEls[i].attach(mesh)
-                }
-              }
-            }
-          }
-        }
-
-        attachEls(childEls, parentEls, true)
         const diff = this.mouse.sub(newMouse)
         diff.x = diff.x * -1
-        object.scale.addScalar((diff.x + diff.y) * 0.01)
-        object.updateMatrix()
-        object.updateMatrixWorld()
-        attachEls(childEls, parentEls, false)
+        this.el.object3D.scale.addScalar((diff.x + diff.y) * 0.01)
         break
       }
       case 'move': {
         const diff = this.mouse.sub(newMouse)
         diff.x = diff.x * -1
-        this.el.object3D.position.x = this.el.object3D.position.x + diff.x * 0.005
-        this.el.object3D.position.y = this.el.object3D.position.y + diff.y * 0.005
+        this.el.object3D.position.x = this.el.object3D.position.x + diff.x * 0.004
+        this.el.object3D.position.y = this.el.object3D.position.y + diff.y * 0.004
         break
       }
       case 'rotate': {
@@ -159,7 +155,6 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
       this.mouse.set(0, 0)
       this.cameraPosition.set(0, 0, 0)
       document.addEventListener('mousemove', this.mouseMoveHandler)
-      console.log(getChildObjects(this.el))
     }
   },
 
@@ -168,36 +163,20 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
     document.removeEventListener('mousemove', this.mouseMoveHandler)
   },
 
-  clickHandler: function (event) {
-    console.log(this.el)
-    event.stopPropagation()
-    for (const obj of [...document.querySelectorAll('[obj-wrapper]')]) {
-      if (obj !== this.el) {
-        obj.emit('objWrapper.deactivate')
-      }
-    }
-
-    if (!this.data.active) {
-      console.log('huh')
-      this.updateBox()
-      this.el.setAttribute('obj-wrapper', 'active: true')
-      this.el.addEventListener('mousedown', this.mouseDownHandler)
-      this.el.addEventListener('mouseup', this.mouseUpHandler)
-    }
-  },
-
   setUpBox: function () {
-    if (!this.el.hasAttribute('container')) {
-      const mesh = this.data.type === 'text' ?
-        this.el.getObject3D('text') :
-        this.el.getObject3D('mesh')
-      if (!mesh) return
-  
-      const box3 = new THREE.Box3().setFromObject(mesh)
-      const dimensions = new THREE.Vector3().subVectors(box3.max, box3.min)
+    const mesh = this.data.type === 'text' ?
+      this.el.getObject3D('text') :
+      this.el.getObject3D('mesh')
+    if (!mesh) return
+
+    const box3 = new THREE.Box3().setFromObject(mesh)
+    const dimensions = new THREE.Vector3().subVectors(box3.max, box3.min)
+
+    if (!this.isContainer()) {
       const boxGeo = new THREE.BoxGeometry(dimensions.x, dimensions.y, dimensions.z)
       const edges = new THREE.EdgesGeometry(boxGeo)
       this.box = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({color: 0x000000}))
+      this.box.position.copy(mesh.position)
     } else {
       this.box = this.el.getObject3D('mesh')
     }
@@ -225,34 +204,11 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
     this.resize = resizeMesh
     this.move = moveMesh
     this.rotate = rotateMesh
-  },
-
-  updateBox: function () {
-    const mesh = this.data.type === 'text' ?
-      this.el.getObject3D('text') :
-      this.el.getObject3D('mesh')
-    if (!mesh) return
-
-    if (this.el.hasAttribute('container')) {
-      mesh.updateMatrix()
-      // mesh.geometry.applyMatrix(mesh.matrix)
-      mesh.geometry.computeBoundingBox()
-    }
-    
-    const box3 = new THREE.Box3().setFromObject(mesh)
-    // box3.matrix.copy(mesh.matrix)
-    const dimensions = new THREE.Vector3().subVectors(box3.max, box3.min)
-
-    if (!this.el.hasAttribute('container')) {
-      const boxGeo = new THREE.BoxGeometry(dimensions.x, dimensions.y, dimensions.z)
-      const edges = new THREE.EdgesGeometry(boxGeo)
-      this.box.geometry = edges
-      this.box.position.copy(mesh.position)
-    }
 
     switch (this.data.type) {
       case 'text':
         this.box.position.x = this.box.position.x + dimensions.x / 2
+        this.box.position.y = this.box.position.y + dimensions.y / 2
         break
       case 'emoji':
         this.box.position.x = this.box.position.x + dimensions.x / 2
@@ -265,7 +221,6 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
         break
     }
 
-    const boxSize = 0.1
     this.resize.position.set(
       this.box.position.x + dimensions.x / 2 + boxSize / 2,
       this.box.position.y + -dimensions.y / 2 - boxSize / 2,
@@ -283,6 +238,18 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
       this.box.position.y + -dimensions.y / 2 - boxSize / 2,
       this.box.position.z + dimensions.z / 2
     )
+  },
+
+  deactivateAllObjWrappers: function () {
+    for (const obj of [...document.querySelectorAll('[obj-wrapper]')]) {
+      if (obj !== this.el) {
+        obj.emit('objWrapper.deactivate')
+      }
+    }
+  },
+
+  isContainer: function () {
+    return this.data.type === 'container' || this.data.type === 'root-container'
   }
 })
 

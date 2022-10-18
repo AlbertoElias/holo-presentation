@@ -1,0 +1,9 @@
+This application uses Open Source components. You can find the source code of their open source projects along with license information below. We acknowledge and are grateful to these developers for their contributions to open source.
+
+Project: a-frame https://github.com/aframevr/aframe
+Copyright © 2015-2017 A-Frame authors.
+License (MIT) https://github.com/aframevr/aframe/blob/master/LICENSE
+
+Project: glTF Viewer https://github.com/donmccurdy/three-gltf-viewer
+Copyright (c) 2017 Don McCurdy
+License (MIT) https://github.com/donmccurdy/three-gltf-viewer/blob/main/LICENSE

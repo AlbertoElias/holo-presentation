@@ -1,17 +1,20 @@
+import GraphemeBreaker from 'grapheme-breaker-mjs'
+
 function emojiToHex(str) {
   return [...str].map(x => x.codePointAt(0).toString(16)).join('-')
 }
 
+function isSingleEmoji (text) {
+  return GraphemeBreaker.break(text).length === 1
+    && /\p{Extended_Pictographic}/u.test(text)
+}
+
 function getChildObjects(containerEl) {
-  const childObjects = [containerEl]
+  const childObjects = []
 
   for (const childObject of containerEl.children) {
     if (childObject.hasAttribute('obj-wrapper')) {
-      if (childObject.hasAttribute('container')) {
-        childObjects.push([...getChildObjects(childObject)])
-      } else {
-        childObjects.push(childObject)
-      }
+      childObjects.push(childObject)
     }
   }
 
@@ -29,8 +32,20 @@ function getParentObjects(childObjs) {
   })
 }
 
+function fileToDataURL (file) {
+  return new Promise ((resolve) => {
+    const reader = new FileReader()
+    reader.addEventListener('load', () => {
+      resolve(reader.result)
+    })
+    reader.readAsDataURL(file)
+  })
+}
+
 export {
   emojiToHex,
+  isSingleEmoji,
   getChildObjects,
-  getParentObjects
+  getParentObjects,
+  fileToDataURL
 }
