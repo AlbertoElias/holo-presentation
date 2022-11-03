@@ -32,24 +32,32 @@ db.version(1).stores({
 })
 
 const frontVector = new THREE.Vector3(0, 0, 1)
-const textUploaderEl = document.body.querySelector('.textUploader')
+const sceneEl = document.querySelector('a-scene')
+const movementControls = sceneEl.querySelector('[movement-controls]')
+const textUploaderEl = sceneEl.querySelector('.textUploader')
+const keyboard = sceneEl.querySelector('#keyboard')
+const leftHand = sceneEl.querySelector('#handLeft')
+const rightHand = sceneEl.querySelector('#handRight')
+const keyboardPositionVector = new THREE.Vector3(0, 1, -0.5)
 
-function addAssetToScene (entity, forceRoot = false) {
-  const sceneEl = document.querySelector('a-scene')
-
-  const selectedContainerId = sceneEl.getAttribute('holo').selectedContainer
-  const selectedContainer = selectedContainerId ? sceneEl.querySelector(`#${selectedContainerId}`) : null
-  if (selectedContainer && !forceRoot) {
-    selectedContainer.appendChild(entity)
-  } else {
-    const cameraQuaternion = sceneEl.camera.el.object3D.quaternion
-    const cameraPosition = sceneEl.camera.el.object3D.position
-    const position = frontVector.clone().applyQuaternion(cameraQuaternion).multiplyScalar(-2)
-    const {x, y, z} = cameraPosition.clone().add(position)
-    entity.setAttribute('position', `${x} ${y} ${z}`)
-    sceneEl.appendChild(entity)
+textUploaderEl.addEventListener('keyup', (event) => {
+  if (event.key === 'Enter') {
+    processText(textUploaderEl.value)
+    hideTextInput()
   }
-}
+})
+
+keyboard.addEventListener('superkeyboardinput', (event) => {
+  console.log(event)
+  processText(event.detail.value)
+  hideTextInput()
+})
+
+keyboard.addEventListener('superkeyboarddismiss', () => {
+  movementControls.setAttribute('movement-controls', {
+    enabled: true
+  })
+})
 
 function processText (text) {
   if (Utils.isSingleEmoji(text)) {
@@ -60,6 +68,94 @@ function processText (text) {
   }
 }
 
+function isPresenting () {
+  return sceneEl.renderer.xr.isPresenting
+}
+
+function isTextInputVisible () {
+  if (isPresenting()) {
+    return keyboard.getAttribute('super-keyboard').show
+  } else {
+    return textUploaderEl.classList.contains('textUploader--visible')
+  }
+}
+
+function showTextInput () {
+  if (isPresenting()) {
+    movementControls.setAttribute('movement-controls', {
+      enabled: false
+    })
+    const cameraQuaternion = sceneEl.camera.el.parentEl.object3D.quaternion
+    const cameraRigPosition = sceneEl.camera.el.parentEl.object3D.position
+    const cameraPosition = sceneEl.camera.el.object3D.position
+    const position = frontVector.clone().applyQuaternion(cameraQuaternion).multiplyScalar(-1)
+    const {x, y, z} = cameraRigPosition.clone().add(position).add(cameraPosition)
+    keyboard.setAttribute('position', `${x} ${y - 0.5 > 0.2 ? y - 0.5 : 0.2} ${z}`)
+    keyboard.setAttribute('super-keyboard', {
+      show: true,
+      value: ''
+    })
+  } else {
+    textUploaderEl.classList.add('textUploader--visible')
+    textUploaderEl.focus()
+  }
+}
+
+function hideTextInput () {
+  if (isPresenting()) {
+    keyboard.setAttribute('super-keyboard', {
+      show: false,
+      value: ''
+    })
+    movementControls.setAttribute('movement-controls', {
+      enabled: true
+    })
+  } else {
+    textUploaderEl.classList.remove('textUploader--visible')
+    textUploaderEl.value = ''
+    textUploaderEl.blur()
+  }
+}
+
+function addAssetToScene (entity, forceRoot = false) {
+  const selectedContainerId = sceneEl.getAttribute('holo').selectedContainer
+  const selectedContainer = selectedContainerId ? sceneEl.querySelector(`#${selectedContainerId}`) : null
+  if (selectedContainer && !forceRoot) {
+    selectedContainer.appendChild(entity)
+  } else {
+    const cameraQuaternion = sceneEl.camera.el.parentEl.object3D.quaternion
+    const cameraRigPosition = sceneEl.camera.el.parentEl.object3D.position
+    const cameraPosition = sceneEl.camera.el.object3D.position
+    const position = frontVector.clone().applyQuaternion(cameraQuaternion).multiplyScalar(-2)
+    const {x, y, z} = cameraRigPosition.clone().add(position).add(cameraPosition)
+    entity.setAttribute('position', `${x} ${y} ${z}`)
+    sceneEl.appendChild(entity)
+  }
+}
+
+function cancelSelection () {
+  hideTextInput()
+
+  document.body.querySelector('a-scene').setAttribute('holo', {
+    selectedContainer: '',
+    isFixed: false,
+    isVisualizing: false
+  })
+
+  // Todo: improve speed
+  for (const obj of [...document.querySelectorAll('[obj-wrapper]')]) {
+    obj.emit('objWrapper.deactivate')
+  }
+}
+
+leftHand.addEventListener('xbuttonup', () => {
+  if (!isTextInputVisible()) {
+    showTextInput()
+  } else {
+    hideTextInput()
+  }
+})
+
 document.addEventListener('keydown', (event) => {
   if (event.defaultPrevented || event.repeat) {
     return
@@ -67,31 +163,45 @@ document.addEventListener('keydown', (event) => {
 
   switch (event.key) {
     case 't':
-      textUploaderEl.classList.add('textUploader--visible')
-      textUploaderEl.focus()
+      if (!isTextInputVisible() && !event.metaKey) {
+        event.preventDefault()
+        showTextInput()
+      }
+
       break
     case 'c':
+      if (isTextInputVisible()) {
+        return
+      }
+
       const containerEl = loadContainer()
       addAssetToScene(containerEl)
       break
     case 'C':
+      if (isTextInputVisible()) {
+        return
+      }
+
       const rootContainerEl = loadRootContainer()
       addAssetToScene(rootContainerEl, true)
       break
     case 's':
       if (event.metaKey) {
-        const sceneEl = document.querySelector('a-scene')
         const selectedContainerId = sceneEl.getAttribute('holo').selectedContainer
         const selectedContainer = selectedContainerId ? sceneEl.querySelector(`#${selectedContainerId}`) : null
         if (selectedContainer) {
           const tree = buildTree(selectedContainer)
           console.log(tree)
           db.holos.put(tree)
+          event.preventDefault()
         }
       }
       break
     case 'v':
-      const sceneEl = document.querySelector('a-scene')
+      if (isTextInputVisible()) {
+        return
+      }
+
       const selectedContainerId = sceneEl.getAttribute('holo').selectedContainer
       const selectedContainer = selectedContainerId ? sceneEl.querySelector(`#${selectedContainerId}`) : null
       if (selectedContainer) {
@@ -102,23 +212,15 @@ document.addEventListener('keydown', (event) => {
       }
       break
     case 'Escape':
-      textUploaderEl.classList.remove('textUploader--visible')
-      textUploaderEl.value = ''
-      textUploaderEl.blur()
-
-      document.body.querySelector('a-scene').setAttribute('holo', {
-        selectedContainer: '',
-        isFixed: false,
-        isVisualizing: false
-      })
-
-      // Todo: improve speed
-      for (const obj of [...document.querySelectorAll('[obj-wrapper]')]) {
-        obj.emit('objWrapper.deactivate')
-      }
+      cancelSelection()
       break
+    case 'Backspace':
     case 'Delete':
-      for (const obj of [...document.querySelectorAll('[obj-wrapper]')]) {
+      if (isTextInputVisible()) {
+        return
+      }
+
+      for (const obj of [...document.querySelectorAll('[obj-wrapper]')]) { 
         const attrs = obj.getAttribute('obj-wrapper')
         if (attrs.active) {
           db.holos.delete(obj.id)
@@ -129,16 +231,7 @@ document.addEventListener('keydown', (event) => {
     default:
       return
   }
-  event.preventDefault()
 }, false)
-
-textUploaderEl.addEventListener('keyup', (event) => {
-  if (event.key === 'Enter') {
-    processText(textUploaderEl.value)
-    textUploaderEl.value = ''
-    textUploaderEl.classList.remove('textUploader--visible')
-  }
-})
 
 const dropCtrl = new SimpleDropzone(document.body, document.body.querySelector('.dropzone'))
 dropCtrl.on('drop', async ({files}) => {
@@ -206,7 +299,7 @@ function saveAll () {
   const objsTree = [...objs].map((childObj) => buildTree(childObj))
 }
 
-document.querySelector('[raycaster]').components.raycaster.raycaster.params.Line.threshold = 0.01
+// document.querySelector('[raycaster]').components.raycaster.raycaster.params.Line.threshold = 0.01
 
 async function unpackObject (obj) {
   let objWrapperEl
@@ -232,7 +325,7 @@ async function unpackObject (obj) {
     default:
       break
   }
-  console.log(objWrapperEl.id, obj.id)
+
   objWrapperEl.id = obj.id
   objWrapperEl.object3D.position.set(...obj.position)
   objWrapperEl.object3D.rotation.set(...obj.rotation)
@@ -254,7 +347,8 @@ db.holos.toArray()
   .then(async (storedHolos) => {
     for (const storedHolo of storedHolos) {
       const unpackedHolo = await unpackTree(storedHolo)
-      const sceneEl = document.querySelector('a-scene')
       sceneEl.appendChild(unpackedHolo)
+
+      cancelSelection()
     }
   })

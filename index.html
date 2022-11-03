@@ -8,12 +8,21 @@
     <meta name="description" content="Hello, WebVR! • A-Frame">
     <script src="/aframe.min.js"></script>
     <script src="/aframe-environment-component.min.js"></script>
+    <script src="/aframe-extras.min.js"></script>
+    <script src="/super-hands.min.js"></script>
+    <script src="/aframe-super-keyboard.js"></script>
     <link rel="stylesheet" href="style.css">
   </head>
   <body class="app">
-    <a-scene cursor="rayOrigin: mouse" raycaster="far: 20; objects: .collidable" keyboard-shortcuts="enterVR: false" holo>
+    <a-scene renderer="antialias: true" cursor="rayOrigin: mouse" raycaster="far: 20; objects: .collidable" keyboard-shortcuts="enterVR: false" holo>
       <a-assets id="assets"></a-assets>
-      <a-entity camera="fov: 80" look-controls wasd-controls="acceleration:30" position="0 1.6 0"></a-entity>
+
+      <a-entity id="rig" movement-controls="speed: 0.5">
+        <a-entity camera="fov: 80" look-controls position="0 1.6 0"></a-entity>
+        <a-entity id="handLeft" sphere-collider="objects: a-box" super-hands laser-controls="hand: left"></a-entity>
+        <a-entity id="handRight" sphere-collider="objects: a-box" super-hands laser-controls="hand: right" raycaster="far: 20; objects: .collidable" line="color: #118A7E"></a-entity>
+      </a-entity>
+
       <a-entity environment="
         ground: canyon;
         groundTexture: walkernoise;
@@ -35,6 +44,8 @@
       <div class="interface">
         <input class="textUploader" type="text">
       </div>
+
+      <a-entity id="keyboard" super-keyboard="hand: #handRight; show: false;" position="0 1.6 -0.5" rotation="-30 0 0"></a-entity>
     </a-scene>
     <input type="file" class="dropzone">
     <script type="module" src="/main.js"></script>

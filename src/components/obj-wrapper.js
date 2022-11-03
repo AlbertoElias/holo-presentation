@@ -96,6 +96,7 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
   },
 
   clickHandler: function (event) {
+    console.log('click')
     event?.stopPropagation()
     this.deactivateAllObjWrappers()
 
@@ -111,6 +112,7 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
   },
 
   mouseMoveHandler: function (event) {
+    console.log(event)
     event.stopPropagation()
     event.preventDefault()
 
@@ -149,18 +151,25 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
   },
 
   mouseDownHandler: function (event) {
+    console.log(event)
     const object = event.detail.intersection?.object
     if (object.name === 'resize' || object.name === 'move' || object.name === 'rotate') {
       this.activeAction = object
       this.mouse.set(0, 0)
       this.cameraPosition.set(0, 0, 0)
       document.addEventListener('mousemove', this.mouseMoveHandler)
+      this.el.sceneEl.setAttribute('holo', {
+        isFixed: false
+      })
     }
   },
 
   mouseUpHandler: function () {
     this.activeAction = null
     document.removeEventListener('mousemove', this.mouseMoveHandler)
+    this.el.sceneEl.setAttribute('holo', {
+      isFixed: this.isContainer()
+    })
   },
 
   setUpBox: function () {
@@ -181,24 +190,26 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
       this.box = this.el.getObject3D('mesh')
     }
 
-    const boxSize = 0.1
-    const boxGeometry = new THREE.BoxGeometry(boxSize, boxSize, 0.002)
-    const boxMaterial = new THREE.MeshBasicMaterial({ color: 0x508AA8 })
+    const boxSize = 0.2
+    const boxGeometry = new THREE.PlaneGeometry(boxSize, boxSize)
 
     const resizeTexture = new THREE.TextureLoader().load(`icons/resize.png`)
+    resizeTexture.anisotropy = this.el.sceneEl.renderer.capabilities.getMaxAnisotropy()
     const moveTexture = new THREE.TextureLoader().load(`icons/move.png`)
+    moveTexture.anisotropy = this.el.sceneEl.renderer.capabilities.getMaxAnisotropy()
     const rotateTexture = new THREE.TextureLoader().load(`icons/rotate.png`)
+    rotateTexture.anisotropy = this.el.sceneEl.renderer.capabilities.getMaxAnisotropy()
   
     const resizeMesh = new THREE.Mesh(boxGeometry.clone(),
-      getButtonMaterials(new THREE.MeshBasicMaterial({ map: resizeTexture, color: 0x508AA8 }), boxMaterial))
+      new THREE.MeshBasicMaterial({ map: resizeTexture, transparent: true, side: THREE.DoubleSide }))
     resizeMesh.name = 'resize'
 
     const moveMesh = new THREE.Mesh(boxGeometry.clone(),
-      getButtonMaterials(new THREE.MeshBasicMaterial({ map: moveTexture }), boxMaterial))
+      new THREE.MeshBasicMaterial({ map: moveTexture, transparent: true, side: THREE.DoubleSide }))
     moveMesh.name = 'move'
 
     const rotateMesh = new THREE.Mesh(boxGeometry.clone(),
-    getButtonMaterials(new THREE.MeshBasicMaterial({ map: rotateTexture }), boxMaterial))
+      new THREE.MeshBasicMaterial({ map: rotateTexture, transparent: true, side: THREE.DoubleSide }))
     rotateMesh.name = 'rotate'
 
     this.resize = resizeMesh
@@ -252,8 +263,3 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
     return this.data.type === 'container' || this.data.type === 'root-container'
   }
 })
-
-function getButtonMaterials (image, material) {
-  const firstFourFaces = new Array(4).fill(material.clone())
-  return [...firstFourFaces, image, material.clone()]
-}
