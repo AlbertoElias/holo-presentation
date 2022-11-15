@@ -2,16 +2,6 @@ import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader'
 
 import { emojiToHex } from './utils'
 
-function loadRootContainer (id) {
-  const rootContainerEl = document.createElement('a-entity')
-  rootContainerEl.setAttribute('root-container', '')
-  rootContainerEl.setAttribute('obj-wrapper', {
-    type: 'root-container',
-    id
-  })
-  return rootContainerEl
-}
-
 function loadContainer (id) {
   const containerEl = document.createElement('a-entity')
   containerEl.setAttribute('container', '')
@@ -139,7 +129,6 @@ function loadGltf (fileDataUrlMap, id) {
 }
 
 export {
-  loadRootContainer,
   loadContainer,
   loadText,
   loadEmoji,

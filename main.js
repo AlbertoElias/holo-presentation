@@ -3,7 +3,6 @@ import { SimpleDropzone } from 'simple-dropzone'
 
 import * as Utils from './src/utils'
 import {
-  loadRootContainer,
   loadContainer,
   loadText,
   loadEmoji,
@@ -12,7 +11,6 @@ import {
 } from './src/object-loader'
 import './src/components/obj-wrapper'
 import './src/components/holo'
-import './src/components/root-container'
 import './src/components/container'
 import './src/components/h-gltf-model'
 import './src/primitives/h-gltf-model'
@@ -38,7 +36,6 @@ const textUploaderEl = sceneEl.querySelector('.textUploader')
 const keyboard = sceneEl.querySelector('#keyboard')
 const leftHand = sceneEl.querySelector('#handLeft')
 const rightHand = sceneEl.querySelector('#handRight')
-const keyboardPositionVector = new THREE.Vector3(0, 1, -0.5)
 
 textUploaderEl.addEventListener('keyup', (event) => {
   if (event.key === 'Enter') {
@@ -48,7 +45,6 @@ textUploaderEl.addEventListener('keyup', (event) => {
 })
 
 keyboard.addEventListener('superkeyboardinput', (event) => {
-  console.log(event)
   processText(event.detail.value)
   hideTextInput()
 })
@@ -85,12 +81,14 @@ function showTextInput () {
     movementControls.setAttribute('movement-controls', {
       enabled: false
     })
-    const cameraQuaternion = sceneEl.camera.el.parentEl.object3D.quaternion
+    const cameraQuaternion = sceneEl.camera.el.object3D.quaternion
     const cameraRigPosition = sceneEl.camera.el.parentEl.object3D.position
     const cameraPosition = sceneEl.camera.el.object3D.position
     const position = frontVector.clone().applyQuaternion(cameraQuaternion).multiplyScalar(-1)
     const {x, y, z} = cameraRigPosition.clone().add(position).add(cameraPosition)
     keyboard.setAttribute('position', `${x} ${y - 0.5 > 0.2 ? y - 0.5 : 0.2} ${z}`)
+    keyboard.object3D.quaternion.copy(new THREE.Quaternion())
+    keyboard.object3D.applyQuaternion(cameraQuaternion)
     keyboard.setAttribute('super-keyboard', {
       show: true,
       value: ''
@@ -123,12 +121,13 @@ function addAssetToScene (entity, forceRoot = false) {
   if (selectedContainer && !forceRoot) {
     selectedContainer.appendChild(entity)
   } else {
-    const cameraQuaternion = sceneEl.camera.el.parentEl.object3D.quaternion
+    const cameraQuaternion = sceneEl.camera.el.object3D.quaternion
     const cameraRigPosition = sceneEl.camera.el.parentEl.object3D.position
     const cameraPosition = sceneEl.camera.el.object3D.position
     const position = frontVector.clone().applyQuaternion(cameraQuaternion).multiplyScalar(-2)
     const {x, y, z} = cameraRigPosition.clone().add(position).add(cameraPosition)
     entity.setAttribute('position', `${x} ${y} ${z}`)
+    entity.object3D.applyQuaternion(cameraQuaternion)
     sceneEl.appendChild(entity)
   }
 }
@@ -148,11 +147,66 @@ function cancelSelection () {
   }
 }
 
-leftHand.addEventListener('xbuttonup', () => {
+function toggleVisualizing () {
+  if (sceneEl.getAttribute('holo').isVisualizing) {
+    cancelSelection()
+  } else {
+    const selectedContainerId = sceneEl.getAttribute('holo').selectedContainer
+    const selectedContainer = selectedContainerId ? sceneEl.querySelector(`#${selectedContainerId}`) : null
+    if (selectedContainer) {
+      sceneEl.setAttribute('holo', {
+        isFixed: true,
+        isVisualizing: true
+      })
+    }
+  }
+}
+
+function saveHolo () {
+  const selectedContainerId = sceneEl.getAttribute('holo').selectedContainer
+  const selectedContainer = selectedContainerId ? sceneEl.querySelector(`#${selectedContainerId}`) : null
+  if (selectedContainer) {
+    const tree = buildTree(selectedContainer)
+    db.holos.put(tree)
+  } else {
+    db.holos.toArray()
+      .then(async (storedHolos) => {
+        for (const storedHolo of storedHolos) {
+          console.log(storedHolo, storedHolo.id)
+          if (!sceneEl.querySelector(`#${storedHolo.id}`)) {
+            console.log('doesnt exist', storedHolo.id)
+            db.holos.delete(storedHolo.id)
+          }
+        }
+      })
+  }
+}
+
+leftHand.addEventListener('ybuttonup', () => {
   if (!isTextInputVisible()) {
     showTextInput()
   } else {
     hideTextInput()
+  }
+})
+
+leftHand.addEventListener('xbuttonup', () => {
+  if (!isTextInputVisible()) {
+    const containerEl = loadContainer()
+    containerEl.setAttribute('obj-wrapper', 'active: true')
+    addAssetToScene(containerEl)
+  }
+})
+
+rightHand.addEventListener('bbuttonup', () => {
+  if (!isTextInputVisible()) {
+    saveHolo()
+  }
+})
+
+rightHand.addEventListener('abuttonup', () => {
+  if (!isTextInputVisible()) {
+    toggleVisualizing()
   }
 })
 
@@ -175,26 +229,13 @@ document.addEventListener('keydown', (event) => {
       }
 
       const containerEl = loadContainer()
+      containerEl.setAttribute('obj-wrapper', 'active: true')
       addAssetToScene(containerEl)
-      break
-    case 'C':
-      if (isTextInputVisible()) {
-        return
-      }
-
-      const rootContainerEl = loadRootContainer()
-      addAssetToScene(rootContainerEl, true)
       break
     case 's':
       if (event.metaKey) {
-        const selectedContainerId = sceneEl.getAttribute('holo').selectedContainer
-        const selectedContainer = selectedContainerId ? sceneEl.querySelector(`#${selectedContainerId}`) : null
-        if (selectedContainer) {
-          const tree = buildTree(selectedContainer)
-          console.log(tree)
-          db.holos.put(tree)
-          event.preventDefault()
-        }
+        saveHolo()
+        event.preventDefault()
       }
       break
     case 'v':
@@ -202,14 +243,7 @@ document.addEventListener('keydown', (event) => {
         return
       }
 
-      const selectedContainerId = sceneEl.getAttribute('holo').selectedContainer
-      const selectedContainer = selectedContainerId ? sceneEl.querySelector(`#${selectedContainerId}`) : null
-      if (selectedContainer) {
-        sceneEl.setAttribute('holo', {
-          isFixed: true,
-          isVisualizing: true
-        })
-      }
+      toggleVisualizing()
       break
     case 'Escape':
       cancelSelection()
@@ -223,7 +257,6 @@ document.addEventListener('keydown', (event) => {
       for (const obj of [...document.querySelectorAll('[obj-wrapper]')]) { 
         const attrs = obj.getAttribute('obj-wrapper')
         if (attrs.active) {
-          db.holos.delete(obj.id)
           obj.parentElement.removeChild(obj)
         }
       }
@@ -299,14 +332,9 @@ function saveAll () {
   const objsTree = [...objs].map((childObj) => buildTree(childObj))
 }
 
-// document.querySelector('[raycaster]').components.raycaster.raycaster.params.Line.threshold = 0.01
-
 async function unpackObject (obj) {
   let objWrapperEl
   switch (obj.type) {
-    case 'root-container':
-      objWrapperEl = loadRootContainer(obj.id)
-      break
     case 'container':
       objWrapperEl = loadContainer(obj.id)
       break
@@ -334,7 +362,6 @@ async function unpackObject (obj) {
 }
 
 async function unpackTree (rootObj) {
-  console.log(rootObj)
   const unpackedRootObj = await unpackObject(rootObj)
   for (const childObj of rootObj.children) {
     const unpackedChildObj = await unpackTree(childObj)
@@ -343,12 +370,19 @@ async function unpackTree (rootObj) {
   return unpackedRootObj
 }
 
-db.holos.toArray()
-  .then(async (storedHolos) => {
-    for (const storedHolo of storedHolos) {
-      const unpackedHolo = await unpackTree(storedHolo)
-      sceneEl.appendChild(unpackedHolo)
+window.addEventListener('load', () => {
+  db.holos.toArray()
+    .then(async (storedHolos) => {
+      for (const storedHolo of storedHolos) {
+        const unpackedHolo = await unpackTree(storedHolo)
+        sceneEl.appendChild(unpackedHolo)
+  
+        cancelSelection()
+      }
+    })
 
-      cancelSelection()
-    }
-  })
+  const raycasters = document.querySelectorAll('[raycaster]')
+  for (const raycaster of raycasters) {
+    raycaster.components.raycaster.raycaster.params.Line.threshold = 0.01
+  }
+})
