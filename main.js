@@ -87,8 +87,7 @@ function showTextInput () {
     const position = frontVector.clone().applyQuaternion(cameraQuaternion).multiplyScalar(-1)
     const {x, y, z} = cameraRigPosition.clone().add(position).add(cameraPosition)
     keyboard.setAttribute('position', `${x} ${y - 0.5 > 0.2 ? y - 0.5 : 0.2} ${z}`)
-    keyboard.object3D.quaternion.copy(new THREE.Quaternion())
-    keyboard.object3D.applyQuaternion(cameraQuaternion)
+    keyboard.object3D.setRotationFromQuaternion(cameraQuaternion)
     keyboard.setAttribute('super-keyboard', {
       show: true,
       value: ''
@@ -121,14 +120,17 @@ function addAssetToScene (entity, forceRoot = false) {
   if (selectedContainer && !forceRoot) {
     selectedContainer.appendChild(entity)
   } else {
-    const cameraQuaternion = sceneEl.camera.el.object3D.quaternion
-    const cameraRigPosition = sceneEl.camera.el.parentEl.object3D.position
-    const cameraPosition = sceneEl.camera.el.object3D.position
-    const position = frontVector.clone().applyQuaternion(cameraQuaternion).multiplyScalar(-2)
-    const {x, y, z} = cameraRigPosition.clone().add(position).add(cameraPosition)
-    entity.setAttribute('position', `${x} ${y} ${z}`)
-    entity.object3D.applyQuaternion(cameraQuaternion)
     sceneEl.appendChild(entity)
+    const cameraQuaternion = sceneEl.camera.el.object3D.quaternion
+    const cameraPosition = sceneEl.camera.el.object3D.getWorldPosition(new THREE.Vector3())
+    const position = frontVector.clone().applyQuaternion(cameraQuaternion).multiplyScalar(-2)
+    entity.object3D.position.copy(cameraPosition.clone().add(position))
+    entity.object3D.lookAt(cameraPosition)
+  }
+
+  if (entity.hasAttribute('container')) {
+    cancelSelection()
+    entity.setAttribute('obj-wrapper', { active: true })
   }
 }
 
@@ -172,9 +174,7 @@ function saveHolo () {
     db.holos.toArray()
       .then(async (storedHolos) => {
         for (const storedHolo of storedHolos) {
-          console.log(storedHolo, storedHolo.id)
           if (!sceneEl.querySelector(`#${storedHolo.id}`)) {
-            console.log('doesnt exist', storedHolo.id)
             db.holos.delete(storedHolo.id)
           }
         }
@@ -193,8 +193,8 @@ leftHand.addEventListener('ybuttonup', () => {
 leftHand.addEventListener('xbuttonup', () => {
   if (!isTextInputVisible()) {
     const containerEl = loadContainer()
-    containerEl.setAttribute('obj-wrapper', 'active: true')
     addAssetToScene(containerEl)
+    containerEl.setAttribute('obj-wrapper', 'active: true')
   }
 })
 
@@ -234,8 +234,8 @@ document.addEventListener('keydown', (event) => {
       break
     case 's':
       if (event.metaKey) {
-        saveHolo()
         event.preventDefault()
+        saveHolo()
       }
       break
     case 'v':
@@ -376,13 +376,13 @@ window.addEventListener('load', () => {
       for (const storedHolo of storedHolos) {
         const unpackedHolo = await unpackTree(storedHolo)
         sceneEl.appendChild(unpackedHolo)
-  
-        cancelSelection()
       }
     })
 
   const raycasters = document.querySelectorAll('[raycaster]')
   for (const raycaster of raycasters) {
+    console.log(raycaster.components.raycaster)
     raycaster.components.raycaster.raycaster.params.Line.threshold = 0.01
   }
 })
+

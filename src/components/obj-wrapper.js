@@ -28,43 +28,47 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
 
     this.el.addEventListener('click', this.clickHandler)
     this.el.addEventListener('objWrapper.deactivate', () => {
-      console.log(1)
       this.el.setAttribute('obj-wrapper', 'active: false')
-      console.log(2)
-      this.el.removeEventListener('mousedown', this.mouseDownHandler)
-      this.el.removeEventListener('mouseup', this.mouseUpHandler)
-      console.log(3)
     })
   },
 
   update: function (oldData) {
     const data = this.data
 
-    if (data.active) {
-      console.log(1.5)
+    // It will break otherwise
+    if (!this.box) return
+
+    if (data.active && !oldData.active) {
       if (!this.isContainer()) {
         this.el.setObject3D('box', this.box)
       }
-      this.el.setObject3D('resize', this.resize)
-      this.el.setObject3D('move', this.move)
-      this.el.setObject3D('rotate', this.rotate)
-      this.el.setObject3D('close', this.close)
+      if (!this.el.sceneEl.renderer.xr.isPresenting) {
+        this.el.setObject3D('resize', this.resize)
+        this.el.setObject3D('move', this.move)
+        this.el.setObject3D('rotate', this.rotate)
 
-      this.el.addEventListener('mousedown', this.mouseDownHandler)
-      this.el.addEventListener('mouseup', this.mouseUpHandler)
+        this.el.addEventListener('mousedown', this.mouseDownHandler)
+        this.el.addEventListener('mouseup', this.mouseUpHandler)
+      }
+
+      this.el.setObject3D('close', this.close)
 
       this.el.sceneEl.setAttribute('holo', {
         selectedContainer: this.el.id,
         isFixed: this.isContainer()
       })
-    } else if (oldData.active) {
-      console.log(1.5)
+    } else if (!data.active && oldData.active) {
       if (!this.isContainer()) {
         this.el.removeObject3D('box')
       }
-      this.el.removeObject3D('resize', this.resize)
-      this.el.removeObject3D('move', this.move)
-      this.el.removeObject3D('rotate', this.rotate)
+      if (!this.el.sceneEl.renderer.xr.isPresenting) {
+        this.el.removeObject3D('resize', this.resize)
+        this.el.removeObject3D('move', this.move)
+        this.el.removeObject3D('rotate', this.rotate)
+
+        this.el.removeEventListener('mousedown', this.mouseDownHandler)
+        this.el.removeEventListener('mouseup', this.mouseUpHandler)
+      }
       this.el.removeObject3D('close', this.close)
     }
   },
@@ -103,10 +107,16 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
     if (!this.isContainer()) {
       this.el.removeObject3D('box')
     }
-    this.el.removeObject3D('resize', this.resize)
-    this.el.removeObject3D('move', this.move)
-    this.el.removeObject3D('rotate', this.rotate)
+    if (!this.el.sceneEl.renderer.xr.isPresenting) {
+      this.el.removeObject3D('resize', this.resize)
+      this.el.removeObject3D('move', this.move)
+      this.el.removeObject3D('rotate', this.rotate)
+    }
     this.el.removeObject3D('close', this.close)
+    this.el.sceneEl.setAttribute('holo', {
+      selectedContainer: '',
+      isFixed: false
+    })
   },
 
   clickHandler: function (event) {
@@ -207,26 +217,13 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
     this.activeAction = null
     document.removeEventListener('mousemove', this.mouseMoveHandler)
     document.removeEventListener('mouseout', this.mouseUpHandler)
-    if (this.currentParentContainer !== this.newParentContainer) {
-      const position = this.el.object3D.getWorldPosition(new THREE.Vector3())
-      const scale = this.el.object3D.getWorldScale(new THREE.Vector3())
-      const rotation = this.el.object3D.getWorldQuaternion(new THREE.Quaternion())
-  
-      this.el.flushToDOM()
-      const copy = this.el.cloneNode()
-      this.newParentContainer.appendChild(copy)
-
-      this.newParentContainer.object3D.worldToLocal(position)
-      this.newParentContainer.object3D.worldToLocal(scale)
-      copy.object3D.position.copy(position)
-      copy.object3D.scale.copy(this.el.object3D.scale)
-      copy.object3D.quaternion.copy(rotation)
-
-      this.currentParentContainer.removeChild(this.el)
-    }
     this.el.sceneEl.setAttribute('holo', {
       isFixed: this.isContainer()
     })
+
+    if (this.currentParentContainer !== this.newParentContainer) {
+      this.changeParent()
+    }
   },
 
   setUpBox: function () {
@@ -234,9 +231,12 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
       this.el.getObject3D('text') :
       this.el.getObject3D('mesh')
     if (!mesh) return
-
+    
+    // Temporarily makes the object a child of the scene so the bounding box ignores any parent transforms
+    this.el.sceneEl.object3D.add(mesh)
     const box3 = new THREE.Box3().setFromObject(mesh)
     const dimensions = new THREE.Vector3().subVectors(box3.max, box3.min)
+    this.el.object3D.add(mesh)
 
     if (!this.isContainer()) {
       const boxGeo = new THREE.BoxGeometry(dimensions.x, dimensions.y, dimensions.z)
@@ -311,10 +311,12 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
     )
 
     this.close.position.set(
-      -this.box.position.x - dimensions.x / 2,
-      -this.box.position.y + dimensions.y / 2,
-      -this.box.position.z + dimensions.z / 2
+      this.box.position.x - dimensions.x / 2,
+      this.box.position.y + dimensions.y / 2,
+      this.box.position.z + dimensions.z / 2
     )
+
+    this.el.emit('objWrapper.boxReady')
   },
 
   deactivateAllObjWrappers: function () {
@@ -344,5 +346,45 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
     return [...this.el.sceneEl.querySelectorAll('[container]')]
       .filter((c) => this.isContainer && c !== this.el)
       .sort((c1, c2) => c2.components['container'].zoomLevel - c1.components['container'].zoomLevel)
+  },
+
+  changeParent () {
+    const position = this.el.object3D.getWorldPosition(new THREE.Vector3())
+    const scale = this.el.object3D.getWorldScale(new THREE.Vector3())
+    const rotation = this.el.object3D.getWorldQuaternion(new THREE.Quaternion())
+
+    // Save the data from current objects to preserve the data as is
+    const currentObjectData = {}
+    const currentObjectWithChildren = [this.el, ...this.el.querySelectorAll('[obj-wrapper]')]
+    for (const object of currentObjectWithChildren) {
+      currentObjectData[object.id] = { ...object.getAttribute('obj-wrapper') }
+    }
+
+    this.el.flushToDOM(true)
+    const copy = this.el.cloneNode()
+
+    // When flushing to DOM, the "asset" property is saved as the string [object Object]
+    // We need to store it as the proper object to then be able to save it in storage
+    for (const id of Object.keys(currentObjectData)) {
+      const newObject = copy.id === id ? copy : copy.querySelector(`#${id}`)
+      newObject.setAttribute('obj-wrapper', currentObjectData[id]['obj-wrapper'])
+    }
+    // Make sure new object is not active, as this will try to load box in #update()
+    // If there is no box, #update() will not be called again as it requires a data change
+    copy.setAttribute('obj-wrapper', { active: false })
+
+
+    this.newParentContainer.object3D.worldToLocal(position)
+    this.newParentContainer.object3D.worldToLocal(scale)
+    copy.object3D.position.copy(position)
+    copy.object3D.scale.copy(this.el.object3D.scale)
+    copy.object3D.quaternion.copy(rotation)
+  
+    this.newParentContainer.appendChild(copy)
+    copy.addEventListener('objWrapper.boxReady', () => {
+      // Now that the box is ready, activate the object
+      copy.setAttribute('obj-wrapper', { active: true })
+      this.currentParentContainer.removeChild(this.el)
+    })
   }
 })

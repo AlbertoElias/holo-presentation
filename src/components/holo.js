@@ -25,7 +25,7 @@ export const holo = AFRAME.registerComponent('holo', {
   init: function () {
     this.cameraEl = this.el.querySelector('[camera]')
     this.movementControls = this.el.querySelector('[movement-controls]')
-    this.leftHand = this.el.sceneEl.querySelector('#handLeft')
+    this.rightHand = this.el.sceneEl.querySelector('#handRight')
     this.keyDownHandler = this.keyDownHandler.bind(this)
     this.thumbstickMovedHandler = this.thumbstickMovedHandler.bind(this)
   },
@@ -57,11 +57,11 @@ export const holo = AFRAME.registerComponent('holo', {
       visualizationState.selectedRootObjectPosition.copy(selectedContainer.object3D.position)
 
       document.addEventListener('keydown', this.keyDownHandler)
-      this.leftHand.addEventListener('thumbstickmoved', this.thumbstickMovedHandler)
+      this.rightHand.addEventListener('thumbstickmoved', this.thumbstickMovedHandler)
     } else if (!data.isVisualizing && oldData.isVisualizing) {
       visualizationState.selectedRootObject.object3D.position.copy(visualizationState.selectedRootObjectPosition)
       document.removeEventListener('keydown', this.keyDownHandler)
-      this.leftHand.removeEventListener('thumbstickmoved', this.thumbstickMovedHandler)
+      this.rightHand.removeEventListener('thumbstickmoved', this.thumbstickMovedHandler)
     }
   },
 
@@ -89,16 +89,25 @@ export const holo = AFRAME.registerComponent('holo', {
       default:
         break
     }
-    event.preventDefault()
+    // event.preventDefault()
   },
 
   thumbstickMovedHandler: function (event) {
-    if (event.detail.x < -0.95) {
-      visualizeLeft()
-      this.updateSelectedObjectPosition()
-    } else if (event.detail.x > 0.95) {
-      visualizeRight()
-      this.updateSelectedObjectPosition()
+    const strength = Math.abs(event.detail.x)
+    if (strength < 0.5) {
+      this.canMoveThumbstick = true
+    }
+
+    if (this.canMoveThumbstick) {
+      if (event.detail.x < -0.95) {
+        this.canMoveThumbstick = false
+        visualizeLeft()
+        this.updateSelectedObjectPosition()
+      } else if (event.detail.x > 0.95) {
+        this.canMoveThumbstick = false
+        visualizeRight()
+        this.updateSelectedObjectPosition()
+      }
     }
   },
 

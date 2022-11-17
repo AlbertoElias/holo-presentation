@@ -19,8 +19,8 @@
 
       <a-entity id="rig" movement-controls="speed: 0.5">
         <a-entity camera="fov: 80" look-controls position="0 1.6 0"></a-entity>
-        <a-entity id="handLeft" sphere-collider="objects: a-box" super-hands laser-controls="hand: left"></a-entity>
-        <a-entity id="handRight" sphere-collider="objects: a-box" super-hands laser-controls="hand: right" raycaster="far: 20; objects: .collidable" line="color: #118A7E"></a-entity>
+        <a-entity id="handLeft" super-hands laser-controls="hand: left" raycaster="far: 20; objects: .collidable; lineColor: #ffffff"></a-entity>
+        <a-entity id="handRight" super-hands laser-controls="hand: right" raycaster="far: 20; objects: .collidable; lineColor: #ffffff"></a-entity>
       </a-entity>
 
       <a-entity environment="
