@@ -9,6 +9,7 @@ import {
   loadImage,
   loadGltf
 } from './src/object-loader'
+import './src/components/emoji'
 import './src/components/obj-wrapper'
 import './src/components/holo'
 import './src/components/container'
@@ -57,7 +58,8 @@ keyboard.addEventListener('superkeyboarddismiss', () => {
 
 function processText (text) {
   if (Utils.isSingleEmoji(text)) {
-    loadEmoji(text).then(addAssetToScene)
+    const emojiEl = loadEmoji(text)
+    addAssetToScene(emojiEl)
   } else {
     const textEl = loadText(text)
     addAssetToScene(textEl)
@@ -118,7 +120,10 @@ function addAssetToScene (entity, forceRoot = false) {
   const selectedContainerId = sceneEl.getAttribute('holo').selectedContainer
   const selectedContainer = selectedContainerId ? sceneEl.querySelector(`#${selectedContainerId}`) : null
   if (selectedContainer && !forceRoot) {
-    selectedContainer.appendChild(entity)
+    const rootContainer = !Utils.getParentContainer(selectedContainer) ?
+      selectedContainer.children[0] :
+      selectedContainer
+      rootContainer.appendChild(entity)
   } else {
     sceneEl.appendChild(entity)
     const cameraQuaternion = sceneEl.camera.el.object3D.quaternion
@@ -142,11 +147,6 @@ function cancelSelection () {
     isFixed: false,
     isVisualizing: false
   })
-
-  // Todo: improve speed
-  for (const obj of [...document.querySelectorAll('[obj-wrapper]')]) {
-    obj.emit('objWrapper.deactivate')
-  }
 }
 
 function toggleVisualizing () {
@@ -168,7 +168,11 @@ function saveHolo () {
   const selectedContainerId = sceneEl.getAttribute('holo').selectedContainer
   const selectedContainer = selectedContainerId ? sceneEl.querySelector(`#${selectedContainerId}`) : null
   if (selectedContainer) {
-    const tree = buildTree(selectedContainer)
+    const rootContainer = !selectedContainer.hasAttribute('obj-wrapper') ?
+      selectedContainer.parentEl :
+      selectedContainer
+    const tree = buildTree(rootContainer)
+    console.log(tree)
     db.holos.put(tree)
   } else {
     db.holos.toArray()
@@ -229,8 +233,8 @@ document.addEventListener('keydown', (event) => {
       }
 
       const containerEl = loadContainer()
-      containerEl.setAttribute('obj-wrapper', 'active: true')
       addAssetToScene(containerEl)
+      containerEl.setAttribute('obj-wrapper', 'active: true')
       break
     case 's':
       if (event.metaKey) {
@@ -317,8 +321,9 @@ function buildTree (objEl) {
   const objWrapper = objEl.getAttribute('obj-wrapper')
   const objData = {
     id: objEl.id,
-    type: objWrapper.type,
-    asset: objWrapper.asset,
+    type: objWrapper?.type || 'container',
+    isDepthLayer: !(!!objWrapper),
+    asset: objWrapper?.asset,
     position: objEl.object3D.position.toArray(),
     rotation: objEl.object3D.rotation.toArray(),
     scale: objEl.object3D.scale.toArray(),
@@ -336,13 +341,13 @@ async function unpackObject (obj) {
   let objWrapperEl
   switch (obj.type) {
     case 'container':
-      objWrapperEl = loadContainer(obj.id)
+      objWrapperEl = loadContainer(obj.id, obj.isDepthLayer)
       break
     case 'text':
       objWrapperEl = loadText(obj.asset.main, obj.id)
       break
     case 'emoji':
-      objWrapperEl = await loadEmoji(obj.asset.main, obj.id)
+      objWrapperEl = loadEmoji(obj.asset.main, obj.id)
       break
     case 'image':
       objWrapperEl = loadImage(obj.asset.main, obj.id)
@@ -378,11 +383,5 @@ window.addEventListener('load', () => {
         sceneEl.appendChild(unpackedHolo)
       }
     })
-
-  const raycasters = document.querySelectorAll('[raycaster]')
-  for (const raycaster of raycasters) {
-    console.log(raycaster.components.raycaster)
-    raycaster.components.raycaster.raycaster.params.Line.threshold = 0.01
-  }
 })
 

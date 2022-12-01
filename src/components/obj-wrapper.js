@@ -1,4 +1,8 @@
+import { getParentContainer } from "../utils"
+
 const frontVector = new THREE.Vector3(0, 0, 1)
+const boxSize = 0.2
+const pivot = new THREE.Group()
 
 export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
   schema: {
@@ -11,7 +15,12 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
 
   init: function () {
     this.el.classList.add('collidable')
-    this.el.id = this.data.id || Math.random().toString(36).replace(/[^a-z]+/g, '')
+    this.el.setAttribute('hoverable', '')
+    this.el.setAttribute('clickable', '')
+    this.el.setAttribute('stretchable', '')
+
+    this.el.id = this.el.id || this.data.id || Math.random().toString(36).replace(/[^a-z]+/g, '')
+
     this.mouse = new THREE.Vector2()
     this.cameraPosition = new THREE.Vector3()
     this._phi = 0
@@ -25,11 +34,42 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
     this.mouseMoveHandler = this.mouseMoveHandler.bind(this)
     this.mouseDownHandler = this.mouseDownHandler.bind(this)
     this.mouseUpHandler = this.mouseUpHandler.bind(this)
+    this.grabStartHandler = this.grabStartHandler.bind(this)
+    this.grabEndHandler = this.grabEndHandler.bind(this)
 
     this.el.addEventListener('click', this.clickHandler)
     this.el.addEventListener('objWrapper.deactivate', () => {
       this.el.setAttribute('obj-wrapper', 'active: false')
     })
+
+    // this.el.addEventListener('hover-start', console.log)
+    // this.el.addEventListener('hover-end', console.log)
+    this.el.addEventListener('grab-start', this.grabStartHandler)
+    this.el.addEventListener('grab-end', this.grabEndHandler)
+  },
+
+  grabStartHandler: function (event) {
+    event.stopPropagation()
+    event.preventDefault()
+
+    if (this.grabbingHand) return
+
+    this.grabbingHand = event.detail.hand
+    this.intersectionPoint = this.grabbingHand.object3D.worldToLocal(this.grabbingHand.components.raycaster.getIntersection(this.el).point)
+    pivot.position.copy(this.intersectionPoint)
+    pivot.attach(this.el.object3D)
+    this.grabbingHand.object3D.attach(pivot)
+
+    this.currentParentContainer = this.newParentContainer = getParentContainer(this.el)
+  },
+
+  grabEndHandler: function () {
+    this.el.parentEl.object3D.attach(this.el.object3D)
+    this.grabbingHand.object3D.remove(pivot)
+    this.grabbingHand = null
+    if (this.currentParentContainer !== this.newParentContainer) {
+      this.changeParent()
+    }
   },
 
   update: function (oldData) {
@@ -42,34 +82,47 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
       if (!this.isContainer()) {
         this.el.setObject3D('box', this.box)
       }
+
       if (!this.el.sceneEl.renderer.xr.isPresenting) {
-        this.el.setObject3D('resize', this.resize)
-        this.el.setObject3D('move', this.move)
-        this.el.setObject3D('rotate', this.rotate)
+        this.resize.visible = true
+        this.move.visible = true
+        this.rotate.visible = true
+        if (this.add) this.add.position.y = boxSize * 4
 
         this.el.addEventListener('mousedown', this.mouseDownHandler)
         this.el.addEventListener('mouseup', this.mouseUpHandler)
+      } else {
+        this.resize.visible = false
+        this.move.visible = false
+        this.rotate.visible = false
+        // this.close.position.y = boxSize
+        if (this.add) this.add.position.y = boxSize
       }
 
-      this.el.setObject3D('close', this.close)
+      this.el.setObject3D('tools', this.tools)
+
+      // If a container is selected, check if it has an active depth layer. If not, use the first depth layer
+      // Other wise it's a normal container or object, so use its id
+      const selectedContainerId = this.el.hasAttribute('container') && !getParentContainer(this.el) ?
+        this.el.getAttribute('container').activeDepthLayer || this.el.children[0].id :
+        this.el.id
+
 
       this.el.sceneEl.setAttribute('holo', {
-        selectedContainer: this.el.id,
+        selectedContainer: selectedContainerId,
         isFixed: this.isContainer()
       })
     } else if (!data.active && oldData.active) {
       if (!this.isContainer()) {
         this.el.removeObject3D('box')
       }
-      if (!this.el.sceneEl.renderer.xr.isPresenting) {
-        this.el.removeObject3D('resize', this.resize)
-        this.el.removeObject3D('move', this.move)
-        this.el.removeObject3D('rotate', this.rotate)
 
+      if (!this.el.sceneEl.renderer.xr.isPresenting) {
         this.el.removeEventListener('mousedown', this.mouseDownHandler)
         this.el.removeEventListener('mouseup', this.mouseUpHandler)
       }
-      this.el.removeObject3D('close', this.close)
+
+      this.el.removeObject3D('tools', this.tools)
     }
   },
 
@@ -77,13 +130,7 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
     const isFixed = this.el.sceneEl.getAttribute('holo').isFixed
 
     if (!this.box) {
-      this.setUpBox()  
-      // if (this.parentContainer?.components['obj-wrapper'].box) {
-      //   const parentBox = new THREE.Box3().setFromObject(this.parentContainer?.components['obj-wrapper'].box)
-      //   const helper = new THREE.Box3Helper(parentBox, 0xffff00)
-      //   console.log(this.el.parentEl)
-      //   this.el.sceneEl.object3D.add(helper)
-      // }
+      this.setUpBox()
       return
     }
 
@@ -100,34 +147,48 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
         this.cameraPosition.copy(newCameraPosition)
       }
     }
+
+    if (this.grabbingHand) {
+      if (this.currentParentContainer !== null) {
+        const box = new THREE.Box3().setFromObject(this.box)
+        const boxCenter = box.getCenter(new THREE.Vector3())
+        const containers = this.getAllOtherContainers()
+        for (const container of containers) {
+          const containerBox = new THREE.Box3().setFromObject(container.getObject3D('mesh'))
+          if (containerBox.containsPoint(boxCenter)) {
+            this.newParentContainer = container
+            break
+          }
+        }
+      }
+    }
   },
 
   remove: function () {
-    this.el.removeEventListener('click', this.clickHandler)
     if (!this.isContainer()) {
       this.el.removeObject3D('box')
     }
-    if (!this.el.sceneEl.renderer.xr.isPresenting) {
-      this.el.removeObject3D('resize', this.resize)
-      this.el.removeObject3D('move', this.move)
-      this.el.removeObject3D('rotate', this.rotate)
+    this.el.removeObject3D('tools')
+    this.el.removeEventListener(' click', this.clickHandler)
+    if (!this.isChangingParent) {
+      this.el.sceneEl.setAttribute('holo', {
+        selectedContainer: '',
+        isFixed: false
+      })
     }
-    this.el.removeObject3D('close', this.close)
-    this.el.sceneEl.setAttribute('holo', {
-      selectedContainer: '',
-      isFixed: false
-    })
   },
 
   clickHandler: function (event) {
     event?.stopPropagation()
     const object = event.detail.intersection?.object
+    console.log('click', event.detail)
 
     if (!this.data.active) {
-      this.deactivateAllObjWrappers()
       this.el.setAttribute('obj-wrapper', 'active: true')
-    } else if (object.name === 'close') {
+    } else if (object?.name === 'close') {
       this.el.parentEl.removeChild(this.el)
+    } else if (object?.name === 'add') {
+      this.el.components['container'].addDepthLayer()
     }
   },
 
@@ -139,30 +200,12 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
       this.mouse.set(event.clientX, event.clientY)
     }
     const newMouse = new THREE.Vector2(event.clientX, event.clientY)
-    // const parentBox = this.newParentContainer && new THREE.Box3().setFromObject(this.newParentContainer.components['obj-wrapper'].box)
-    // const mesh = this.data.type === 'text' ?
-    //   this.el.getObject3D('text') :
-    //   this.el.getObject3D('mesh')
-    // const boxObject = this.box.clone()
-    const box = new THREE.Box3().setFromObject(this.box)
-    const boxCenter =  box.getCenter(new THREE.Vector3())
   
     switch (this.activeAction.name) {
       case 'resize': {
         const diff = this.mouse.sub(newMouse)
         diff.x = diff.x * -1
-
-        // boxObject.scale.addScalar((diff.x + diff.y) * 0.01)
-        // const box = new THREE.Box3().setFromObject(boxObject)
-        // const helper = new THREE.Box3Helper(box, 0xffff00)
-        // this.el.sceneEl.object3D.add(helper)
-        // console.log(parentBox)
-        // console.log(box)
-
-        // console.log(parentBox.containsBox(box))
-        // if (!this.parentContainer || parentBox.containsBox(box)) {
-          this.el.object3D.scale.addScalar((diff.x + diff.y) * 0.01)
-        // }
+        this.el.object3D.scale.addScalar((diff.x + diff.y) * 0.01)
         break
       }
       case 'move': {
@@ -172,10 +215,13 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
         this.el.object3D.position.y = this.el.object3D.position.y + diff.y * 0.004
 
         if (this.currentParentContainer === null) break
+
+        const box = new THREE.Box3().setFromObject(this.box)
+        const boxCenter = box.getCenter(new THREE.Vector3())
   
         const containers = this.getAllOtherContainers()
         for (const container of containers) {
-          const containerBox = new THREE.Box3().setFromObject(container.components['obj-wrapper'].box)
+          const containerBox = new THREE.Box3().setFromObject(container.getObject3D('mesh'))
           if (containerBox.containsPoint(boxCenter)) {
             this.newParentContainer = container
             break
@@ -186,9 +232,9 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
       case 'rotate': {
         newMouse.set(this.mouse.x - event.movementX, this.mouse.y - event.movementY)
         const delta = new THREE.Vector2().subVectors(newMouse, this.mouse)
-        const phi = this._phi + 2 * Math.PI * delta.y / screen.height * 1
+        const phi = this._phi + 2 * Math.PI * delta.y / screen.height
         this._phi = Math.max(-Math.PI/2, Math.min(phi, Math.PI/2))
-        this._theta += 2 * Math.PI * delta.x / screen.width * 1
+        this._theta += 2 * Math.PI * delta.x / screen.width
         this.el.object3D.rotation.set(-this._phi, -this._theta, 0, 'YXZ')
         break
       }
@@ -201,7 +247,7 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
   mouseDownHandler: function (event) {
     const object = event.detail.intersection?.object
     if (object.name === 'resize' || object.name === 'move' || object.name === 'rotate') {
-      this.currentParentContainer = this.newParentContainer = this.getParentContainer()
+      this.currentParentContainer = this.newParentContainer = getParentContainer(this.el)
       this.activeAction = object
       this.mouse.set(0, 0)
       this.cameraPosition.set(0, 0, 0)
@@ -235,11 +281,11 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
     // Temporarily makes the object a child of the scene so the bounding box ignores any parent transforms
     this.el.sceneEl.object3D.add(mesh)
     const box3 = new THREE.Box3().setFromObject(mesh)
-    const dimensions = new THREE.Vector3().subVectors(box3.max, box3.min)
+    const meshDimensions = new THREE.Vector3().subVectors(box3.max, box3.min)
     this.el.object3D.add(mesh)
 
     if (!this.isContainer()) {
-      const boxGeo = new THREE.BoxGeometry(dimensions.x, dimensions.y, dimensions.z)
+      const boxGeo = new THREE.BoxGeometry(meshDimensions.x, meshDimensions.y, meshDimensions.z)
       const edges = new THREE.EdgesGeometry(boxGeo)
       this.box = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({color: 0x000000}))
       this.box.position.copy(mesh.position)
@@ -249,82 +295,85 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
 
     switch (this.data.type) {
       case 'text':
-        this.box.position.x = this.box.position.x + dimensions.x / 2
-        this.box.position.y = this.box.position.y + dimensions.y / 2
+        mesh.position.x = this.box.position.x - meshDimensions.x / 2
+        mesh.position.y = this.box.position.y - meshDimensions.y / 2
         break
       case 'emoji':
-        this.box.position.x = this.box.position.x + dimensions.x / 2
-        this.box.position.y = this.box.position.y - dimensions.y / 2
+        mesh.position.x = this.box.position.x - meshDimensions.x / 2
+        mesh.position.y = this.box.position.y + meshDimensions.y / 2
         break
       case 'gltf':
-        this.box.position.y = this.box.position.y + dimensions.y / 2
+        mesh.position.y = this.box.position.y - meshDimensions.y / 2
         break
       default:
         break
     }
 
-    const boxSize = 0.2
-    const boxGeometry = new THREE.PlaneGeometry(boxSize, boxSize)
+    const boxGeometry = new THREE.CircleGeometry(boxSize / 2, 32)
 
     const resizeTexture = new THREE.TextureLoader().load(`icons/resize.png`)
     const moveTexture = new THREE.TextureLoader().load(`icons/move.png`)
     const rotateTexture = new THREE.TextureLoader().load(`icons/rotate.png`)
     const closeTexture = new THREE.TextureLoader().load(`icons/close.png`)
   
-    const resizeMesh = new THREE.Mesh(boxGeometry.clone(),
-      new THREE.MeshBasicMaterial({ map: resizeTexture, transparent: true, side: THREE.DoubleSide }))
-    resizeMesh.name = 'resize'
+    this.resize = new THREE.Mesh(boxGeometry.clone(),
+      new THREE.MeshBasicMaterial({ map: resizeTexture, color: '#FFFFFF', side: THREE.DoubleSide }))
+    this.resize.name = 'resize'
 
-    const moveMesh = new THREE.Mesh(boxGeometry.clone(),
-      new THREE.MeshBasicMaterial({ map: moveTexture, transparent: true, side: THREE.DoubleSide }))
-    moveMesh.name = 'move'
+    this.move = new THREE.Mesh(boxGeometry.clone(),
+      new THREE.MeshBasicMaterial({ map: moveTexture, transparent: true, opacity: 1, color: '#ffffff', side: THREE.DoubleSide }))
+    this.move.name = 'move'
 
-    const rotateMesh = new THREE.Mesh(boxGeometry.clone(),
+    this.rotate = new THREE.Mesh(boxGeometry.clone(),
       new THREE.MeshBasicMaterial({ map: rotateTexture, transparent: true, side: THREE.DoubleSide }))
-    rotateMesh.name = 'rotate'
+    this.rotate.name = 'rotate'
 
-    const closeMesh = new THREE.Mesh(boxGeometry.clone(),
+    this.close = new THREE.Mesh(boxGeometry.clone(),
       new THREE.MeshBasicMaterial({ map: closeTexture, transparent: true, side: THREE.DoubleSide }))
-    closeMesh.name = 'close'
+    this.close.name = 'close'
 
-    this.resize = resizeMesh
-    this.move = moveMesh
-    this.rotate = rotateMesh
-    this.close = closeMesh
+    this.tools = new THREE.Group()
+    this.tools.add(this.resize)
+    this.tools.add(this.move)
+    this.tools.add(this.rotate)
+    this.tools.add(this.close)
 
-    this.resize.position.set(
-      this.box.position.x + dimensions.x / 2 + boxSize / 2,
-      this.box.position.y + -dimensions.y / 2 - boxSize / 2,
-      this.box.position.z + dimensions.z / 2
+    this.tools.position.set(
+      this.box.position.x + meshDimensions.x / 2 + boxSize / 2 + 0.03,
+      this.box.position.y + -meshDimensions.y / 2 - boxSize / 2,
+      this.box.position.z + meshDimensions.z / 2
     )
 
-    this.move.position.set(
-      this.box.position.x + dimensions.x / 2 + boxSize / 2 + boxSize,
-      this.box.position.y + -dimensions.y / 2 - boxSize / 2,
-      this.box.position.z + dimensions.z / 2
-    )
+    this.resize.position.y = boxSize
+    this.move.position.y = boxSize * 2
+    this.rotate.position.y = boxSize * 3
+    this.close.position.y = boxSize * 4
 
-    this.rotate.position.set(
-      this.box.position.x + dimensions.x / 2 + boxSize / 2 + boxSize * 2,
-      this.box.position.y + -dimensions.y / 2 - boxSize / 2,
-      this.box.position.z + dimensions.z / 2
-    )
+    const toolsBox3 = new THREE.Box3().setFromObject(this.tools)
+    const toolsDimensions = new THREE.Vector3().subVectors(toolsBox3.max, toolsBox3.min)
+    if (toolsDimensions.y + boxSize > meshDimensions.y && !this.el.sceneEl.renderer.xr.isPresenting) {
+      this.tools.position.y = -toolsDimensions.y / 2 - boxSize / 2
+    } else {
+      const closePosition = new THREE.Vector3(
+        this.box.position.x + meshDimensions.x / 2 + boxSize / 2,
+        this.box.position.y + meshDimensions.y / 2 - boxSize / 2,
+        this.box.position.z + meshDimensions.z / 2
+      )
+      this.close.position.copy(this.tools.worldToLocal(closePosition))
+    }
 
-    this.close.position.set(
-      this.box.position.x - dimensions.x / 2,
-      this.box.position.y + dimensions.y / 2,
-      this.box.position.z + dimensions.z / 2
-    )
+    if (this.isContainer() && !getParentContainer(this.el)) {
+      const addTexture = new THREE.TextureLoader().load(`icons/add.png`)
+      this.add = new THREE.Mesh(boxGeometry.clone(),
+        new THREE.MeshBasicMaterial({ map: addTexture, transparent: false, side: THREE.DoubleSide }))
+      this.add.name = 'add'
+      // It can have the same position as the close button
+      // because in a container there will always be enough height to fit the close button in the top right
+      this.add.position.y = boxSize * 4
+      this.tools.add(this.add)
+    }
 
     this.el.emit('objWrapper.boxReady')
-  },
-
-  deactivateAllObjWrappers: function () {
-    for (const obj of [...document.querySelectorAll('[obj-wrapper]')]) {
-      if (obj !== this.el) {
-        obj.emit('objWrapper.deactivate')
-      }
-    }
   },
 
   isContainer: function () {
@@ -344,14 +393,14 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
 
   getAllOtherContainers () {
     return [...this.el.sceneEl.querySelectorAll('[container]')]
-      .filter((c) => this.isContainer && c !== this.el)
+      .filter((c) => (this.isContainer && c !== this.el) && getParentContainer(c))
       .sort((c1, c2) => c2.components['container'].zoomLevel - c1.components['container'].zoomLevel)
   },
 
   changeParent () {
     const position = this.el.object3D.getWorldPosition(new THREE.Vector3())
     const scale = this.el.object3D.getWorldScale(new THREE.Vector3())
-    const rotation = this.el.object3D.getWorldQuaternion(new THREE.Quaternion())
+    const rotation = this.el.object3D.quaternion
 
     // Save the data from current objects to preserve the data as is
     const currentObjectData = {}
@@ -364,10 +413,11 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
     const copy = this.el.cloneNode()
 
     // When flushing to DOM, the "asset" property is saved as the string [object Object]
-    // We need to store it as the proper object to then be able to save it in storage
+    // We need to store it as an object to then be able to save it in storage
     for (const id of Object.keys(currentObjectData)) {
       const newObject = copy.id === id ? copy : copy.querySelector(`#${id}`)
-      newObject.setAttribute('obj-wrapper', currentObjectData[id]['obj-wrapper'])
+      console.log('setting', newObject)
+      newObject.setAttribute('obj-wrapper', currentObjectData[id])
     }
     // Make sure new object is not active, as this will try to load box in #update()
     // If there is no box, #update() will not be called again as it requires a data change
@@ -380,11 +430,13 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
     copy.object3D.scale.copy(this.el.object3D.scale)
     copy.object3D.quaternion.copy(rotation)
   
-    this.newParentContainer.appendChild(copy)
     copy.addEventListener('objWrapper.boxReady', () => {
+      this.isChangingParent = true
+      this.currentParentContainer.removeChild(this.el)
       // Now that the box is ready, activate the object
       copy.setAttribute('obj-wrapper', { active: true })
-      this.currentParentContainer.removeChild(this.el)
+      console.log(document.querySelector('#' + copy.id).getAttribute('obj-wrapper'))
     })
+    this.newParentContainer.appendChild(copy)
   }
 })

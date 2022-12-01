@@ -15,13 +15,19 @@
   </head>
   <body class="app">
     <a-scene renderer="antialias: true" cursor="rayOrigin: mouse" raycaster="far: 20; objects: .collidable" keyboard-shortcuts="enterVR: false" holo>
-      <a-assets id="assets"></a-assets>
-
-      <a-entity id="rig" movement-controls="speed: 0.5">
-        <a-entity camera="fov: 80" look-controls position="0 1.6 0"></a-entity>
-        <a-entity id="handLeft" super-hands laser-controls="hand: left" raycaster="far: 20; objects: .collidable; lineColor: #ffffff"></a-entity>
-        <a-entity id="handRight" super-hands laser-controls="hand: right" raycaster="far: 20; objects: .collidable; lineColor: #ffffff"></a-entity>
-      </a-entity>
+      <a-assets id="assets">
+        <a-mixin id="point"
+          raycaster="far: 10; objects: .collidable; lineColor: #ffffff; threshold: 0.1"
+          super-hands="colliderEvent: raycaster-intersection;
+                      colliderEventProperty: els;
+                      colliderEndEvent: raycaster-intersection-cleared;
+                      colliderEndEventProperty: clearedEls;
+                      grabStartButtons: griptouchstart;
+                      grabEndButtons: griptouchend;
+                      stretchStartButtons: griptouchstart;
+                      stretchEndButtons: griptouchend;">
+        </a-mixin>
+      </a-assets>
 
       <a-entity environment="
         ground: canyon;
@@ -41,10 +47,16 @@
         fog: 0.5;
       "></a-entity>
 
+      <a-entity id="rig" movement-controls="speed: 0.5">
+        <a-entity camera="fov: 80" look-controls position="0 1.6 0"></a-entity>
+        <a-entity id="handLeft" super-hands laser-controls="hand: left" mixin="point"></a-entity>
+        <a-entity id="handRight" super-hands laser-controls="hand: right" mixin="point"></a-entity>
+      </a-entity>
+
       <div class="interface">
         <input class="textUploader" type="text">
       </div>
-
+`
       <a-entity id="keyboard" super-keyboard="hand: #handRight; show: false;" position="0 1.6 -0.5" rotation="-30 0 0"></a-entity>
     </a-scene>
     <input type="file" class="dropzone">

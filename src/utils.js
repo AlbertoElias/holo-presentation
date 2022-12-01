@@ -13,7 +13,7 @@ function getChildObjects(containerEl) {
   const childObjects = []
 
   for (const childObject of containerEl.children) {
-    if (childObject.hasAttribute('obj-wrapper')) {
+    if (childObject.hasAttribute('obj-wrapper') || childObject.hasAttribute('container')) {
       childObjects.push(childObject)
     }
   }
@@ -42,10 +42,22 @@ function fileToDataURL (file) {
   })
 }
 
+function getParentContainer (el) {
+  el = el.parentEl
+    while (!el.hasAttribute('container')) {
+      if (!el.parentEl) {
+        return null
+      }
+      el = el.parentEl
+    }
+    return el
+}
+
 export {
   emojiToHex,
   isSingleEmoji,
   getChildObjects,
   getParentObjects,
-  fileToDataURL
+  fileToDataURL,
+  getParentContainer
 }

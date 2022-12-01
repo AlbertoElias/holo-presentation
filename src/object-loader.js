@@ -1,22 +1,25 @@
-import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader'
-
-import { emojiToHex } from './utils'
-
-function loadContainer (id) {
+function loadContainer (id, isDepthLayer = false) {
   const containerEl = document.createElement('a-entity')
   containerEl.setAttribute('container', '')
-  containerEl.setAttribute('obj-wrapper', {
-    type: 'container',
-    id
-  })
+  if (!isDepthLayer) {
+    containerEl.setAttribute('obj-wrapper', {
+      type: 'container'
+    })
+  }
+  if (id) {
+    containerEl.id = id
+  }
   return containerEl
 }
 
 function loadText (text, id) {
   const textEl = document.createElement('a-text')
-  textEl.setAttribute('value', text)
-  textEl.setAttribute('color', 'black')
-  textEl.setAttribute('side', 'double')
+  textEl.setAttribute('text', {
+    value: text,
+    color: 'black',
+    side: 'double',
+    zOffset: 0
+  })
   textEl.setAttribute('obj-wrapper', {
     type: 'text',
     asset: { main: text },
@@ -25,45 +28,15 @@ function loadText (text, id) {
   return textEl
 }
 
-function generate3dEmojiFromSvg (emojiHex) {
-  return new Promise((resolve) => {
-    new SVGLoader().load(`emojis/${emojiHex}.svg`, (data) => {
-      const group = new THREE.Group
-      group.scale.multiplyScalar(0.01)
-      group.scale.y *= -1
-      for (const path of data.paths) {
-        const material = new THREE.MeshBasicMaterial( {
-          color: path.userData.style.fill,
-          depthWrite: false
-        })
-
-        const shapes = path.toShapes(true)
-        for (const shape of shapes) {
-          const geometry = new THREE.ExtrudeBufferGeometry(shape, {
-            depth: 1.5,
-            bevelEnabled: false
-          })
-          const mesh = new THREE.Mesh(geometry, material)
-          group.add(mesh)
-        }
-      }
-      resolve(group)
-    })
-  })
-}
-
 function loadEmoji (emoji, id) {
-  return generate3dEmojiFromSvg(emojiToHex(emoji))
-    .then((mesh) => {
-      const emojiEl = document.createElement('a-entity') 
-      emojiEl.setObject3D('mesh', mesh)
-      emojiEl.setAttribute('obj-wrapper', {
-        type: 'emoji',
-        asset: { main: emoji },
-        id
-    })
-      return emojiEl
-    })
+  const emojiEl = document.createElement('a-entity') 
+  emojiEl.setAttribute('emoji', { emoji })
+  emojiEl.setAttribute('obj-wrapper', {
+    type: 'emoji',
+    asset: { main: emoji },
+    id
+  })
+  return emojiEl
 }
 
 function loadImage (asset, id) {
