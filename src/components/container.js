@@ -22,7 +22,8 @@ export const container = AFRAME.registerComponent('container', {
       // Check if this is a depth layer
       if (!getParentContainer(this.el.parentEl)) {
         this.el.classList.add('collidable')
-        this.el.object3D.position.z = DEPTH_LAYER_OFFSET
+        const index = [...this.el.parentEl.children].indexOf(this.el)
+        this.el.object3D.position.z = -index * LAYER_SPACING + DEPTH_LAYER_OFFSET
         this.clickHandler = this.clickHandler.bind(this)
         this.el.addEventListener('click', this.clickHandler)
         this.el.addEventListener('container.deactivate', () => {
@@ -80,12 +81,6 @@ export const container = AFRAME.registerComponent('container', {
 
     if (updateCointanerBox) {
       this.setContainerBox()
-    }
-
-    // ToDo: Maybe we only need to set the position for the last one created
-    for (let i = 0; i < this.getDepthLayers(); i++) {
-      const depthLayer = this.el.children[i]
-      depthLayer.object3D.position.z = -i * LAYER_SPACING + DEPTH_LAYER_OFFSET
     }
   },
 

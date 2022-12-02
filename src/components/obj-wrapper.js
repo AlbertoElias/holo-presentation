@@ -41,35 +41,9 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
     this.el.addEventListener('objWrapper.deactivate', () => {
       this.el.setAttribute('obj-wrapper', 'active: false')
     })
-
-    // this.el.addEventListener('hover-start', console.log)
-    // this.el.addEventListener('hover-end', console.log)
+  
     this.el.addEventListener('grab-start', this.grabStartHandler)
     this.el.addEventListener('grab-end', this.grabEndHandler)
-  },
-
-  grabStartHandler: function (event) {
-    event.stopPropagation()
-    event.preventDefault()
-
-    if (this.grabbingHand) return
-
-    this.grabbingHand = event.detail.hand
-    this.intersectionPoint = this.grabbingHand.object3D.worldToLocal(this.grabbingHand.components.raycaster.getIntersection(this.el).point)
-    pivot.position.copy(this.intersectionPoint)
-    pivot.attach(this.el.object3D)
-    this.grabbingHand.object3D.attach(pivot)
-
-    this.currentParentContainer = this.newParentContainer = getParentContainer(this.el)
-  },
-
-  grabEndHandler: function () {
-    this.el.parentEl.object3D.attach(this.el.object3D)
-    this.grabbingHand.object3D.remove(pivot)
-    this.grabbingHand = null
-    if (this.currentParentContainer !== this.newParentContainer) {
-      this.changeParent()
-    }
   },
 
   update: function (oldData) {
@@ -106,7 +80,6 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
       const selectedContainerId = this.el.hasAttribute('container') && !getParentContainer(this.el) ?
         this.el.getAttribute('container').activeDepthLayer || this.el.children[0].id :
         this.el.id
-
 
       this.el.sceneEl.setAttribute('holo', {
         selectedContainer: selectedContainerId,
@@ -148,19 +121,8 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
       }
     }
 
-    if (this.grabbingHand) {
-      if (this.currentParentContainer !== null) {
-        const box = new THREE.Box3().setFromObject(this.box)
-        const boxCenter = box.getCenter(new THREE.Vector3())
-        const containers = this.getAllOtherContainers()
-        for (const container of containers) {
-          const containerBox = new THREE.Box3().setFromObject(container.getObject3D('mesh'))
-          if (containerBox.containsPoint(boxCenter)) {
-            this.newParentContainer = container
-            break
-          }
-        }
-      }
+    if (this.grabbingHand && this.currentParentContainer !== null) {
+      this.checkNewParentContainer()
     }
   },
 
@@ -216,17 +178,7 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
 
         if (this.currentParentContainer === null) break
 
-        const box = new THREE.Box3().setFromObject(this.box)
-        const boxCenter = box.getCenter(new THREE.Vector3())
-  
-        const containers = this.getAllOtherContainers()
-        for (const container of containers) {
-          const containerBox = new THREE.Box3().setFromObject(container.getObject3D('mesh'))
-          if (containerBox.containsPoint(boxCenter)) {
-            this.newParentContainer = container
-            break
-          }
-        }
+        this.checkNewParentContainer()
         break
       }
       case 'rotate': {
@@ -267,6 +219,34 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
       isFixed: this.isContainer()
     })
 
+    const currentParentContainerMesh = this.currentParentContainer.getObject3D('mesh')
+    currentParentContainerMesh.material.color.setHex(0x24b59f)
+    if (this.currentParentContainer !== this.newParentContainer) {
+      const newParentContainerMesh = this.newParentContainer.getObject3D('mesh')
+      newParentContainerMesh.material.color.setHex(0x24b59f)
+      this.changeParent()
+    }
+  },
+
+  grabStartHandler: function (event) {
+    event.stopPropagation()
+    event.preventDefault()
+
+    if (this.grabbingHand) return
+
+    this.grabbingHand = event.detail.hand
+    this.intersectionPoint = this.grabbingHand.object3D.worldToLocal(this.grabbingHand.components.raycaster.getIntersection(this.el).point)
+    pivot.position.copy(this.intersectionPoint)
+    pivot.attach(this.el.object3D)
+    this.grabbingHand.object3D.attach(pivot)
+
+    this.currentParentContainer = this.newParentContainer = getParentContainer(this.el)
+  },
+
+  grabEndHandler: function () {
+    this.el.parentEl.object3D.attach(this.el.object3D)
+    this.grabbingHand.object3D.remove(pivot)
+    this.grabbingHand = null
     if (this.currentParentContainer !== this.newParentContainer) {
       this.changeParent()
     }
@@ -374,6 +354,23 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
     }
 
     this.el.emit('objWrapper.boxReady')
+  },
+
+  checkNewParentContainer: function () {
+    const box = new THREE.Box3().setFromObject(this.box)
+    const boxCenter = box.getCenter(new THREE.Vector3())
+    const containers = this.getAllOtherContainers()
+    for (const container of containers) {
+      const containerBox = new THREE.Box3().setFromObject(container.getObject3D('mesh'))
+      if (containerBox.containsPoint(boxCenter)) {
+        const previousParentContainerMesh = this.newParentContainer.getObject3D('mesh')
+        previousParentContainerMesh.material.color.setHex(0x24b59f)
+        this.newParentContainer = container
+        const newParentContainerMesh = container.getObject3D('mesh')
+        newParentContainerMesh.material.color.setHex(0x00ff00)
+        break
+      }
+    }
   },
 
   isContainer: function () {
