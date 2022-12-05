@@ -53,11 +53,21 @@ function getParentContainer (el) {
     return el
 }
 
+function getRootContainer (el) {
+  const parentContainer = getParentContainer(el)
+  if (parentContainer) {
+    return getRootContainer(parentContainer)
+  } else {
+    return el
+  }
+}
+
 export {
   emojiToHex,
   isSingleEmoji,
   getChildObjects,
   getParentObjects,
   fileToDataURL,
-  getParentContainer
+  getParentContainer,
+  getRootContainer
 }

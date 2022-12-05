@@ -54,7 +54,19 @@
       </a-entity>
 
       <div class="interface">
-        <input class="textUploader" type="text">
+        <!-- Material Input based on https://codingbeautydev.com/blog/material-design-text-field/ -->
+        <div class="textUploader">
+          <input
+            type="text"
+            id="fname"
+            name="fname"
+            value=""
+            aria-labelledby="label-fname"
+          />
+          <label class="label" for="fname" id="label-fname">
+            <div class="text">Add Text</div>
+          </label>
+        </div>
       </div>
 
       <a-entity id="keyboard" super-keyboard="hand: #handRight; show: false;" position="0 1.6 -0.5" rotation="-30 0 0"></a-entity>

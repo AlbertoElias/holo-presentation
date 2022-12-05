@@ -1,4 +1,7 @@
+import { getRootContainer } from '../utils'
+
 const visualizationState = {
+  initialObject: null,
   selectedObject: null,
   selectedObjectPosition: new THREE.Vector3(),
   selectedRootObject: null,
@@ -69,13 +72,23 @@ export const holo = AFRAME.registerComponent('holo', {
       }
 
       const selectedContainer = this.el.sceneEl.querySelector(`#${this.data.selectedContainer}`)
-      visualizationState.selectedObject = selectedContainer
-      visualizationState.selectedRootObject = selectedContainer
-      visualizationState.selectedRootObjectPosition.copy(selectedContainer.object3D.position)
+      const correctSelectedContainer = !selectedContainer.hasAttribute('obj-wrapper') ?
+        selectedContainer.parentEl :
+        selectedContainer
+      const rootContainer = getRootContainer(correctSelectedContainer)
+      
+      visualizationState.initialObject = correctSelectedContainer
+      visualizationState.selectedObject = correctSelectedContainer
+      visualizationState.selectedRootObject = rootContainer
+      visualizationState.selectedRootObjectPosition.copy(rootContainer.object3D.position)
+  
+      correctSelectedContainer.removeObject3D('tools')
+      this.toggleContainerMeshes(false)
 
       document.addEventListener('keydown', this.keyDownHandler)
       this.rightHand.addEventListener('thumbstickmoved', this.thumbstickMovedHandler)
     } else if (!data.isVisualizing && oldData.isVisualizing) {
+      this.toggleContainerMeshes(true)
       visualizationState.selectedRootObject.object3D.position.copy(visualizationState.selectedRootObjectPosition)
       document.removeEventListener('keydown', this.keyDownHandler)
       this.rightHand.removeEventListener('thumbstickmoved', this.thumbstickMovedHandler)
@@ -106,7 +119,6 @@ export const holo = AFRAME.registerComponent('holo', {
       default:
         break
     }
-    // event.preventDefault()
   },
 
   thumbstickMovedHandler: function (event) {
@@ -149,6 +161,11 @@ export const holo = AFRAME.registerComponent('holo', {
       .sub(visualizationState.cameraPosition)
     diff.z += cameraZ
     rootObject.position.sub(diff)
+  },
+
+  toggleContainerMeshes: function (isVisible) {
+    const containerChildren = this.el.querySelectorAll('[container]')
+    containerChildren.forEach(child => child.getObject3D('mesh').visible = isVisible)
   }
 })
 
@@ -166,18 +183,18 @@ function visualizeRight () {
   }
 
   const nextParentSibling = visualizationState.selectedObject.parentEl.nextSibling
-  if (nextParentSibling) {
+  if (nextParentSibling && visualizationState.initialObject.contains(nextParentSibling)) {
     visualizationState.selectedObject = nextParentSibling
     return
   }
 
   // If we are at the end, start from the beginning
-  visualizationState.selectedObject = visualizationState.selectedRootObject
+  visualizationState.selectedObject = visualizationState.initialObject
 }
 
 function visualizeLeft () {
   // We are already at the beginning and it makes no sense to go back
-  if (visualizationState.selectedObject === visualizationState.selectedRootObject) {
+  if (visualizationState.selectedObject === visualizationState.initialObject) {
     const lastRootChild = findLastChild(visualizationState.selectedObject)
     visualizationState.selectedObject = lastRootChild
     return
@@ -196,7 +213,7 @@ function visualizeLeft () {
   }
 
   const parent = visualizationState.selectedObject.parentEl
-  if (parent) {
+  if (parent && visualizationState.initialObject.contains(parent)) {
     visualizationState.selectedObject = parent
     return
   }

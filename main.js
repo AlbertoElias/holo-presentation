@@ -34,13 +34,14 @@ const frontVector = new THREE.Vector3(0, 0, 1)
 const sceneEl = document.querySelector('a-scene')
 const movementControls = sceneEl.querySelector('[movement-controls]')
 const textUploaderEl = sceneEl.querySelector('.textUploader')
+const textInputEl = textUploaderEl.querySelector('input')
 const keyboard = sceneEl.querySelector('#keyboard')
 const leftHand = sceneEl.querySelector('#handLeft')
 const rightHand = sceneEl.querySelector('#handRight')
 
-textUploaderEl.addEventListener('keyup', (event) => {
+textInputEl.addEventListener('keyup', (event) => {
   if (event.key === 'Enter') {
-    processText(textUploaderEl.value)
+    processText(textInputEl.value)
     hideTextInput()
   }
 })
@@ -96,7 +97,7 @@ function showTextInput () {
     })
   } else {
     textUploaderEl.classList.add('textUploader--visible')
-    textUploaderEl.focus()
+    textInputEl.focus()
   }
 }
 
@@ -111,8 +112,8 @@ function hideTextInput () {
     })
   } else {
     textUploaderEl.classList.remove('textUploader--visible')
-    textUploaderEl.value = ''
-    textUploaderEl.blur()
+    textInputEl.value = ''
+    textInputEl.blur()
   }
 }
 
@@ -383,5 +384,9 @@ window.addEventListener('load', () => {
         sceneEl.appendChild(unpackedHolo)
       }
     })
+  
 })
-
+textInputEl.addEventListener('input', () => {
+  console.log(textInputEl.value)
+  textInputEl.setAttribute('value', textInputEl.value)
+})

@@ -219,8 +219,8 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
       isFixed: this.isContainer()
     })
 
-    const currentParentContainerMesh = this.currentParentContainer.getObject3D('mesh')
-    currentParentContainerMesh.material.color.setHex(0x24b59f)
+    const currentParentContainerMesh = this.currentParentContainer?.getObject3D('mesh')
+    currentParentContainerMesh?.material.color.setHex(0x24b59f)
     if (this.currentParentContainer !== this.newParentContainer) {
       const newParentContainerMesh = this.newParentContainer.getObject3D('mesh')
       newParentContainerMesh.material.color.setHex(0x24b59f)
@@ -375,17 +375,6 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
 
   isContainer: function () {
     return this.data.type === 'container'
-  },
-
-  getParentContainer: function () {
-    let el = this.el.parentEl
-    while (!el.hasAttribute('container')) {
-      if (!el.parentEl) {
-        return null
-      }
-      el = el.parentEl
-    }
-    return el
   },
 
   getAllOtherContainers () {
