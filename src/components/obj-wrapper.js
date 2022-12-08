@@ -143,7 +143,6 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
   clickHandler: function (event) {
     event?.stopPropagation()
     const object = event.detail.intersection?.object
-    console.log('click', event.detail)
 
     if (!this.data.active) {
       this.el.setAttribute('obj-wrapper', 'active: true')
@@ -198,6 +197,7 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
 
   mouseDownHandler: function (event) {
     const object = event.detail.intersection?.object
+    if (!object) return
     if (object.name === 'resize' || object.name === 'move' || object.name === 'rotate') {
       this.currentParentContainer = this.newParentContainer = getParentContainer(this.el)
       this.activeAction = object

@@ -13,6 +13,7 @@ import './src/components/emoji'
 import './src/components/obj-wrapper'
 import './src/components/holo'
 import './src/components/container'
+import './src/components/tabs'
 import './src/components/h-gltf-model'
 import './src/primitives/h-gltf-model'
 import './src/systems/h-gltf-model'
@@ -165,6 +166,15 @@ function toggleVisualizing () {
   }
 }
 
+function toggleInfo () {
+  const infoEl = document.querySelector('#info')
+  if (infoEl.getAttribute('visible')) {
+    infoEl.setAttribute('visible', false)
+  } else {
+    infoEl.setAttribute('visible', true)
+  }
+}
+
 function saveHolo () {
   const selectedContainerId = sceneEl.getAttribute('holo').selectedContainer
   const selectedContainer = selectedContainerId ? sceneEl.querySelector(`#${selectedContainerId}`) : null
@@ -215,6 +225,12 @@ rightHand.addEventListener('abuttonup', () => {
   }
 })
 
+rightHand.addEventListener('thumbstickdown', () => {
+  if (!isTextInputVisible()) {
+    toggleInfo()
+  }
+})
+
 document.addEventListener('keydown', (event) => {
   if (event.defaultPrevented || event.repeat) {
     return
@@ -249,6 +265,13 @@ document.addEventListener('keydown', (event) => {
       }
 
       toggleVisualizing()
+      break
+    case 'i':
+      if (isTextInputVisible()) {
+        return
+      }
+
+      toggleInfo()
       break
     case 'Escape':
       cancelSelection()
@@ -386,7 +409,7 @@ window.addEventListener('load', () => {
     })
   
 })
+
 textInputEl.addEventListener('input', () => {
-  console.log(textInputEl.value)
   textInputEl.setAttribute('value', textInputEl.value)
 })

@@ -27,6 +27,14 @@
                       stretchStartButtons: griptouchstart;
                       stretchEndButtons: griptouchend;">
         </a-mixin>
+        <a-mixin id="tab"
+          geometry="width: 1; height: 0.2;"
+          material="color: #CCC;"
+          text="color: #000; align: center;"
+          >
+        </a-mixin>
+
+        <img id="vr-controls" src="vr-controls.png">
       </a-assets>
 
       <a-entity environment="
@@ -53,6 +61,31 @@
         <a-entity id="handRight" super-hands laser-controls="hand: right" mixin="point"></a-entity>
       </a-entity>
 
+      <a-plane id="info" width="4" height="2" color="#FFF" position="0 1.5 -2.5" material="side: double;">
+        <a-entity position="0 0.8 0" tabs="active: getting-started-tab">
+          <a-plane id="getting-started-tab" mixin="tab" position="-0.6 0 0.01" text="value: Getting Started;" class="collidable"
+            tab="getting-started" onclick="this.parentEl.setAttribute('tabs', {active: this.id})"></a-plane>
+          <a-plane id="controls-tab" mixin="tab" position="0.6 0 0.01" text="value: Controls;" class="collidable"
+            tab="controls" onclick="this.parentEl.setAttribute('tabs', {active: this.id})"></a-plane>
+        </a-entity>
+
+        <a-entity id="getting-started" position="-1.8 0.5 0" visible="false">
+\         <a-text color="#CCC" position="0 0 0" width="3.6" value="1. Create a container"></a-text>
+          <a-text color="#CCC" position="0 -0.3 0" width="3.6" value="2. Add text, emojis, images, 3D models, or other containers"></a-text>
+          <a-text color="#CCC" position="0 -0.6 0" width="3.6" value="3. Add depth layers to your container"></a-text>
+          <a-text color="#CCC" position="0 -0.8 0" width="3.6" value="4. Save your presentation"></a-text>
+          <a-text color="#CCC" position="0 -1 0" width="3.6" value="5. Visualize"></a-text>
+          <a-entity position="0.5 -1.3 0">
+            <a-plane class="collidable" color="#FF0" width="1" height="0.2" position="0 0 0.01" text="color: #000; align: center; value: Presentation 1;"></a-plane>
+            <a-plane class="collidable" color="#FF0" width="1" height="0.2" position="1.3 0 0.01" text="color: #000; align: center; value: Presentation 2;"></a-plane>
+            <a-plane class="collidable" color="#FF0" width="1" height="0.2" position="2.6 0 0.01" text="color: #000; align: center; value: Presentation 3;"></a-plane>
+          </a-entity>
+        </a-entity>
+
+        <a-entity id="controls" position="0 0 0.01" visible="false">
+          <a-image transparent="true" src="#vr-controls"></a-image>
+        </a-entity>
+      </a-plane>
       <div class="interface">
         <!-- Material Input based on https://codingbeautydev.com/blog/material-design-text-field/ -->
         <div class="textUploader">
