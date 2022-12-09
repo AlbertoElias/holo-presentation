@@ -1,6 +1,7 @@
 import Dexie from 'dexie'
 import { SimpleDropzone } from 'simple-dropzone'
 
+import './style.css'
 import * as Utils from './src/utils'
 import {
   loadContainer,
