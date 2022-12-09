@@ -34,6 +34,7 @@
           >
         </a-mixin>
 
+        <img id="keyboard-controls" src="keyboard-controls.png">
         <img id="vr-controls" src="vr-controls.png">
       </a-assets>
 
@@ -83,7 +84,8 @@
         </a-entity>
 
         <a-entity id="controls" position="0 0 0.01" visible="false">
-          <a-image transparent="true" src="#vr-controls"></a-image>
+          <a-image transparent="true" src="#keyboard-controls" position="-1 0 0"></a-image>
+          <a-image transparent="true" src="#vr-controls" position="1 0 0"></a-image>
         </a-entity>
       </a-plane>
       <div class="interface">
