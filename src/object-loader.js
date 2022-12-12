@@ -16,7 +16,7 @@ function loadText (text, id) {
   const textEl = document.createElement('a-text')
   textEl.setAttribute('text', {
     value: text,
-    color: 'black',
+    color: 'white',
     side: 'double',
     zOffset: 0
   })

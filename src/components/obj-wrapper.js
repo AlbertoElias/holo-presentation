@@ -2,6 +2,7 @@ import { getParentContainer } from "../utils"
 
 const frontVector = new THREE.Vector3(0, 0, 1)
 const boxSize = 0.2
+const boxMargin = 0.02
 const pivot = new THREE.Group()
 
 export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
@@ -55,13 +56,15 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
     if (data.active && !oldData.active) {
       if (!this.isContainer()) {
         this.el.setObject3D('box', this.box)
+      } else if (getParentContainer(this.el)) {
+        this.box.material.transparent = false
       }
 
       if (!this.el.sceneEl.renderer.xr.isPresenting) {
         this.resize.visible = true
         this.move.visible = true
         this.rotate.visible = true
-        if (this.add) this.add.position.y = boxSize * 4
+        if (this.add) this.add.position.y = boxSize * 4 + boxMargin * 3
 
         this.el.addEventListener('mousedown', this.mouseDownHandler)
         this.el.addEventListener('mouseup', this.mouseUpHandler)
@@ -69,7 +72,6 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
         this.resize.visible = false
         this.move.visible = false
         this.rotate.visible = false
-        // this.close.position.y = boxSize
         if (this.add) this.add.position.y = boxSize
       }
 
@@ -88,6 +90,8 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
     } else if (!data.active && oldData.active) {
       if (!this.isContainer()) {
         this.el.removeObject3D('box')
+      } else if (getParentContainer(this.el)) {
+        this.box.material.transparent = true
       }
 
       if (!this.el.sceneEl.renderer.xr.isPresenting) {
@@ -219,11 +223,15 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
       isFixed: this.isContainer()
     })
 
-    const currentParentContainerMesh = this.currentParentContainer?.getObject3D('mesh')
-    currentParentContainerMesh?.material.color.setHex(0x24b59f)
+    if (this.currentParentContainer) {
+      const currentParentContainerMesh = this.currentParentContainer.getObject3D('mesh')
+      currentParentContainerMesh?.material.color.setHex(0xffffff)
+      currentParentContainerMesh.material.transparent = true
+    }
     if (this.currentParentContainer !== this.newParentContainer) {
       const newParentContainerMesh = this.newParentContainer.getObject3D('mesh')
       newParentContainerMesh.material.color.setHex(0x24b59f)
+      newParentContainerMesh.material.transparent = true
       this.changeParent()
     }
   },
@@ -267,7 +275,7 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
     if (!this.isContainer()) {
       const boxGeo = new THREE.BoxGeometry(meshDimensions.x, meshDimensions.y, meshDimensions.z)
       const edges = new THREE.EdgesGeometry(boxGeo)
-      this.box = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({color: 0x000000}))
+      this.box = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({color: 0xffffff}))
       this.box.position.copy(mesh.position)
     } else {
       this.box = this.el.getObject3D('mesh')
@@ -325,9 +333,9 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
     )
 
     this.resize.position.y = boxSize
-    this.move.position.y = boxSize * 2
-    this.rotate.position.y = boxSize * 3
-    this.close.position.y = boxSize * 4
+    this.move.position.y = boxSize * 2 + boxMargin
+    this.rotate.position.y = boxSize * 3 + boxMargin * 2
+    this.close.position.y = boxSize * 4 + boxMargin * 3
 
     const toolsBox3 = new THREE.Box3().setFromObject(this.tools)
     const toolsDimensions = new THREE.Vector3().subVectors(toolsBox3.max, toolsBox3.min)
@@ -335,7 +343,7 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
       this.tools.position.y = -toolsDimensions.y / 2 - boxSize / 2
     } else {
       const closePosition = new THREE.Vector3(
-        this.box.position.x + meshDimensions.x / 2 + boxSize / 2,
+        this.box.position.x + meshDimensions.x / 2 + boxSize / 2 + 0.03,
         this.box.position.y + meshDimensions.y / 2 - boxSize / 2,
         this.box.position.z + meshDimensions.z / 2
       )
@@ -364,10 +372,12 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
       const containerBox = new THREE.Box3().setFromObject(container.getObject3D('mesh'))
       if (containerBox.containsPoint(boxCenter)) {
         const previousParentContainerMesh = this.newParentContainer.getObject3D('mesh')
-        previousParentContainerMesh.material.color.setHex(0x24b59f)
+        previousParentContainerMesh.material.color.setHex(0xffffff)
+        previousParentContainerMesh.material.transparent = true
         this.newParentContainer = container
         const newParentContainerMesh = container.getObject3D('mesh')
-        newParentContainerMesh.material.color.setHex(0x00ff00)
+        newParentContainerMesh.material.color.setHex(0xFFAA01)
+        previousParentContainerMesh.material.transparent = false
         break
       }
     }
