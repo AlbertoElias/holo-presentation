@@ -13,10 +13,22 @@ export const container = AFRAME.registerComponent('container', {
   },
 
   init: function () {
-    if (getParentContainer(this.el)) {
+    if (getParentContainer(this.el)) {  
       this.zoomLevel = this.getZoomLevel()
       const edges = new THREE.EdgesGeometry(new THREE.PlaneGeometry(WIDTH / this.zoomLevel, HEIGHT / this.zoomLevel))
-      const mesh = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({color: 0xffffff, transparent: true, opacity: 0.5}))
+      const segments = new THREE.LineSegmentsGeometry().fromEdgesGeometry(edges)
+      const material = new THREE.LineMaterial({
+    
+        color: 0xffffff,
+        worldUnits: true,
+        linewidth: 0.02, // in pixels
+        transparent: true,
+        opacity: 0.5
+    
+      })
+      const mesh = new THREE.LineSegments2(segments, material)
+      mesh.computeLineDistances()
+      mesh.scale.set(1, 1, 1)
       this.el.setObject3D('mesh', mesh)
 
       // Check if this is a depth layer
@@ -68,7 +80,19 @@ export const container = AFRAME.registerComponent('container', {
   setContainerBox: function () {
     const boxDepth = LAYER_SPACING * this.getDepthLayers() - 1
     const edges = new THREE.EdgesGeometry(new THREE.BoxGeometry(WIDTH, HEIGHT, boxDepth))
-    const mesh = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.5 }))
+    const segments = new THREE.LineSegmentsGeometry().fromEdgesGeometry(edges)
+    const material = new THREE.LineMaterial({
+  
+      color: 0xffffff,
+      worldUnits: true,
+      linewidth: 0.02, // in pixels
+      transparent: true,
+      opacity: 0.5
+  
+    })
+    const mesh = new THREE.LineSegments2(segments, material)
+    mesh.computeLineDistances()
+    mesh.scale.set(1, 1, 1)
     mesh.position.z = -boxDepth / 2 
     this.el.setObject3D('mesh', mesh)
   },

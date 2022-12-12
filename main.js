@@ -408,7 +408,6 @@ window.addEventListener('load', () => {
         sceneEl.appendChild(unpackedHolo)
       }
     })
-  
 })
 
 textInputEl.addEventListener('input', () => {

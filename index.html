@@ -65,12 +65,12 @@
       </a-entity>
 
       <a-plane id="info" width="4" height="2" color="#FFF" position="0 1.5 -2.5" material="side: double; color: #191923">
-        <a-plane width="1" height="2" position="-1.5 0 0.002" material="color: #222230" tabs="active: examples-tab">
-          <a-plane id="getting-started-tab" mixin="tab" position="0 0.9 0.005" text="value: Getting Started;" class="collidable"
+        <a-plane width="1" height="2" position="-1.5 00 0.002" material="color: #222230" tabs="active: getting-started-tab">
+          <a-plane id="getting-started-tab" mixin="tab" position="0 0.8 0.005" text="value: Getting Started;" class="collidable"
             tab="getting-started" onclick="this.parentEl.setAttribute('tabs', {active: this.id})"></a-plane>
-          <a-plane id="controls-tab" mixin="tab" position="0 0.7 0.005" text="value: Controls;" class="collidable"
+          <a-plane id="controls-tab" mixin="tab" position="0 0.6 0.005" text="value: Controls;" class="collidable"
             tab="controls" onclick="this.parentEl.setAttribute('tabs', {active: this.id})"></a-plane>
-          <a-plane id="examples-tab" mixin="tab" position="0 0.5 0.005" text="value: Examples;" class="collidable"
+          <a-plane id="examples-tab" mixin="tab" position="0 0.4 0.005" text="value: Examples;" class="collidable"
             tab="examples" onclick="this.parentEl.setAttribute('tabs', {active: this.id})"></a-plane>
         </a-plane>
 
@@ -102,6 +102,7 @@
           </a-plane>
         </a-entity>
       </a-plane>
+
       <div class="interface">
         <!-- Material Input based on https://codingbeautydev.com/blog/material-design-text-field/ -->
         <div class="textUploader">

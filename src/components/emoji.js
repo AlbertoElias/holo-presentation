@@ -1,16 +1,16 @@
-import { SVGLoader } from 'three/examples/jsm/loaders/SVGLoader'
 import { emojiToHex } from '../utils'
 
 function generate3dEmojiFromSvg (emojiHex) {
   return new Promise((resolve) => {
-    new SVGLoader().load(`emojis/${emojiHex}.svg`, (data) => {
+    new THREE.SVGLoader().load(`emojis/${emojiHex}.svg`, (data) => {
       const group = new THREE.Group
       group.scale.multiplyScalar(0.01)
       group.scale.y *= -1
       for (const path of data.paths) {
         const material = new THREE.MeshBasicMaterial( {
           color: path.userData.style.fill,
-          depthWrite: false
+          depthWrite: false,
+          opacity: 1
         })
 
         const shapes = path.toShapes(true)
