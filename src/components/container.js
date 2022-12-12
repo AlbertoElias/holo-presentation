@@ -27,8 +27,6 @@ export const container = AFRAME.registerComponent('container', {
     
       })
       const mesh = new THREE.LineSegments2(segments, material)
-      mesh.computeLineDistances()
-      mesh.scale.set(1, 1, 1)
       this.el.setObject3D('mesh', mesh)
 
       // Check if this is a depth layer
@@ -37,6 +35,7 @@ export const container = AFRAME.registerComponent('container', {
         const index = [...this.el.parentEl.children].indexOf(this.el)
         this.el.object3D.position.z = -index * LAYER_SPACING + DEPTH_LAYER_OFFSET
         this.clickHandler = this.clickHandler.bind(this)
+        this.clickHandler()
         this.el.addEventListener('click', this.clickHandler)
         this.el.addEventListener('container.deactivate', () => {
           this.el.parentEl.setAttribute('container', { activeDepthLayer: '' })
@@ -91,8 +90,6 @@ export const container = AFRAME.registerComponent('container', {
   
     })
     const mesh = new THREE.LineSegments2(segments, material)
-    mesh.computeLineDistances()
-    mesh.scale.set(1, 1, 1)
     mesh.position.z = -boxDepth / 2 
     this.el.setObject3D('mesh', mesh)
   },
