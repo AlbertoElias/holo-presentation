@@ -15,15 +15,26 @@ function loadContainer (id, isDepthLayer = false) {
 function loadText (text, id) {
   const textEl = document.createElement('a-text')
   textEl.setAttribute('text', {
+    align: 'center',
     value: text,
     color: 'white',
     side: 'double',
-    zOffset: 0
+    wrapCount: text.length > 24 ? 24 : text.length,
+    width: 1
   })
   textEl.setAttribute('obj-wrapper', {
     type: 'text',
     asset: { main: text },
     id
+  })
+  textEl.setAttribute('material', {
+    color: '#333333',
+    transparent: false
+  })
+  textEl.setAttribute('geometry', {
+    primitive: 'plane',
+    height: 'auto',
+    width: 'auto'
   })
   return textEl
 }

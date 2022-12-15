@@ -55,10 +55,11 @@ export const holo = AFRAME.registerComponent('holo', {
           const selectedContainer = this.el.sceneEl.querySelector(`#${data.selectedContainer}`)
           // Checks if it is not a change between layers of the same container. In that case, the container component takes care of it
           if (!oldSelectedContainer.hasAttribute('obj-wrapper') && selectedContainer.hasAttribute('obj-wrapper')) {
-            oldSelectedContainer.emit('container.deactivate')
+            oldSelectedContainer?.emit('container.deactivate')
           }
         } else {
           // If there is no new selected container, that we means we are cancelling all selections
+          oldSelectedContainer?.emit('objWrapper.deactivate')
           oldSelectedContainer?.emit('container.deactivate')
         }
       }

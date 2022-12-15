@@ -54,10 +54,8 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
     if (!this.box) return
 
     if (data.active && !oldData.active) {
-      if (!this.isContainer()) {
+      if (!this.isContainer() || getParentContainer(this.el)) {
         this.el.setObject3D('box', this.box)
-      } else if (getParentContainer(this.el)) {
-        this.box.material.transparent = false
       }
 
       if (!this.el.sceneEl.renderer.xr.isPresenting) {
@@ -88,10 +86,8 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
         isFixed: this.isContainer()
       })
     } else if (!data.active && oldData.active) {
-      if (!this.isContainer()) {
-        this.el.removeObject3D('box')
-      } else if (getParentContainer(this.el)) {
-        this.box.material.transparent = true
+      if (!this.isContainer() || getParentContainer(this.el)) {
+        this.el.removeObject3D('box', this.box)
       }
 
       if (!this.el.sceneEl.renderer.xr.isPresenting) {
@@ -146,7 +142,7 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
 
   clickHandler: function (event) {
     event?.stopPropagation()
-    const object = event.detail.intersection?.object
+    const object = event?.detail?.intersection?.object
 
     if (!this.data.active) {
       this.el.setAttribute('obj-wrapper', 'active: true')
@@ -261,9 +257,7 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
   },
 
   setUpBox: function () {
-    const mesh = this.data.type === 'text' ?
-      this.el.getObject3D('text') :
-      this.el.getObject3D('mesh')
+    const mesh = this.el.getObject3D('mesh')
     if (!mesh) return
     
     // Temporarily makes the object a child of the scene so the bounding box ignores any parent transforms
@@ -272,20 +266,18 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
     const meshDimensions = new THREE.Vector3().subVectors(box3.max, box3.min)
     this.el.object3D.add(mesh)
 
-    if (!this.isContainer()) {
-      const boxGeo = new THREE.BoxGeometry(meshDimensions.x, meshDimensions.y, meshDimensions.z)
-      const edges = new THREE.EdgesGeometry(boxGeo)
-      this.box = new THREE.LineSegments(edges, new THREE.LineBasicMaterial({color: 0xffffff}))
-      this.box.position.copy(mesh.position)
-    } else {
-      this.box = this.el.getObject3D('mesh')
-    }
+    const boxGeo = new THREE.BoxGeometry(meshDimensions.x, meshDimensions.y, meshDimensions.z)
+    const edges = new THREE.EdgesGeometry(boxGeo)
+    const segments = new THREE.LineSegmentsGeometry().fromEdgesGeometry(edges)
+    const material = new THREE.LineMaterial({
+      color: 0xffffff,
+      worldUnits: true,
+      linewidth: 0.01 // in pixels
+    })
+    this.box = new THREE.LineSegments2(segments, material)
+    this.box.position.copy(mesh.position)
 
     switch (this.data.type) {
-      case 'text':
-        mesh.position.x = this.box.position.x - meshDimensions.x / 2
-        mesh.position.y = this.box.position.y - meshDimensions.y / 2
-        break
       case 'emoji':
         mesh.position.x = this.box.position.x - meshDimensions.x / 2
         mesh.position.y = this.box.position.y + meshDimensions.y / 2
@@ -328,7 +320,7 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
 
     this.tools.position.set(
       this.box.position.x + meshDimensions.x / 2 + boxSize / 2 + 0.03,
-      this.box.position.y + -meshDimensions.y / 2 - boxSize / 2,
+      this.box.position.y - meshDimensions.y / 2 - boxSize / 2,
       this.box.position.z + meshDimensions.z / 2
     )
 

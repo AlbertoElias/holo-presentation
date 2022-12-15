@@ -58,13 +58,13 @@
         fog: 0.5;
       "></a-entity> -->
 
-      <a-entity id="rig" movement-controls="speed: 0.5">
+      <a-entity id="rig" movement-controls="speed: 0.2">
         <a-entity camera="fov: 80" look-controls position="0 1.6 0"></a-entity>
         <a-entity id="handLeft" super-hands laser-controls="hand: left" mixin="point"></a-entity>
         <a-entity id="handRight" super-hands laser-controls="hand: right" mixin="point"></a-entity>
       </a-entity>
 
-      <a-plane id="info" width="4" height="2" color="#FFF" position="0 1.5 -2.5" material="side: double; color: #191923">
+      <a-plane id="info" width="4" height="2" color="#FFF" position="0 1.5 -1.8" material="side: double; color: #191923" visible="false">
         <a-plane width="1" height="2" position="-1.5 00 0.002" material="color: #222230" tabs="active: getting-started-tab">
           <a-plane id="getting-started-tab" mixin="tab" position="0 0.8 0.005" text="value: Getting Started;" class="collidable"
             tab="getting-started" onclick="this.parentEl.setAttribute('tabs', {active: this.id})"></a-plane>
@@ -83,8 +83,8 @@
         </a-entity>
 
         <a-entity id="controls" position="-0.4 0 0.01" visible="false">
-          <a-image transparent="true" src="#keyboard-controls" position="0 0 0"></a-image>
-          <a-image transparent="true" src="#vr-controls" position="1.2 0 0"></a-image>
+          <a-image width="1" height="1.22" transparent="true" src="#keyboard-controls" position="0 0.28 0"></a-image>
+          <a-image width="1.8" height="1.05" transparent="true" src="#vr-controls" position="1.4 -0.3 0"></a-image>
         </a-entity>
 
         <a-entity id="examples" position="-0.3 0.4 0" visible="false">

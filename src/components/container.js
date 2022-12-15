@@ -3,9 +3,10 @@ import { loadContainer } from "../object-loader"
 
 const WIDTH = 4
 const HEIGHT = 2.25
-const LAYER_SPACING = 1
+const LAYER_SPACING = 1.5
 // Allows us to click the depth layer vs root container
 const DEPTH_LAYER_OFFSET = 0.0002
+const boxSize = 0.2
 
 export const container = AFRAME.registerComponent('container', {
   schema: {
@@ -15,31 +16,29 @@ export const container = AFRAME.registerComponent('container', {
   init: function () {
     if (getParentContainer(this.el)) {  
       this.zoomLevel = this.getZoomLevel()
-      const edges = new THREE.EdgesGeometry(new THREE.PlaneGeometry(WIDTH / this.zoomLevel, HEIGHT / this.zoomLevel))
-      const segments = new THREE.LineSegmentsGeometry().fromEdgesGeometry(edges)
-      const material = new THREE.LineMaterial({
-    
+      const geometry = new THREE.PlaneGeometry(WIDTH / this.zoomLevel, HEIGHT / this.zoomLevel)
+      const material = new THREE.MeshBasicMaterial({
         color: 0xffffff,
-        worldUnits: true,
-        linewidth: 0.02, // in pixels
         transparent: true,
-        opacity: 0.5
-    
+        opacity: 0.5,
+        side: THREE.DoubleSide
       })
-      const mesh = new THREE.LineSegments2(segments, material)
+      const mesh = new THREE.Mesh(geometry, material)
       this.el.setObject3D('mesh', mesh)
 
       // Check if this is a depth layer
       if (!getParentContainer(this.el.parentEl)) {
         this.el.classList.add('collidable')
+        this.addTools()
+        this.addBox()
         const index = [...this.el.parentEl.children].indexOf(this.el)
         this.el.object3D.position.z = -index * LAYER_SPACING + DEPTH_LAYER_OFFSET
         this.clickHandler = this.clickHandler.bind(this)
-        this.clickHandler()
         this.el.addEventListener('click', this.clickHandler)
         this.el.addEventListener('container.deactivate', () => {
           this.el.parentEl.setAttribute('container', { activeDepthLayer: '' })
         })
+        this.el.emit('container.depthLayerReady')
       }
     } else {
       if (!this.el.children.length) {
@@ -60,34 +59,51 @@ export const container = AFRAME.registerComponent('container', {
 
     if (this.data.activeDepthLayer !== oldData.activeDepthLayer) {
       if (oldData.activeDepthLayer) {
-        const mesh = this.el.querySelector(`#${oldData.activeDepthLayer}`).getObject3D('mesh')
-        mesh.material.transparent = true
+        const oldActiveDepthLayerEl = this.el.querySelector(`#${oldData.activeDepthLayer}`)
+        oldActiveDepthLayerEl.removeObject3D('box', oldActiveDepthLayerEl.components['container'].box)
+        oldActiveDepthLayerEl.removeObject3D('visible', oldActiveDepthLayerEl.components['container'].visible)
       }
 
       if (this.data.activeDepthLayer) {
-        const mesh = this.el.querySelector(`#${this.data.activeDepthLayer}`).getObject3D('mesh')
-        mesh.material.transparent = false
+        const activeDepthLayerEl = this.el.querySelector(`#${this.data.activeDepthLayer}`)
+        activeDepthLayerEl.setObject3D('box', activeDepthLayerEl.components['container'].box)
+        activeDepthLayerEl.setObject3D('visible', activeDepthLayerEl.components['container'].visible)
       }
     }
   },
 
-  clickHandler: function () {
+  clickHandler: function (event) {
     this.el.parentEl.setAttribute('container', { activeDepthLayer: this.el.id })
     document.querySelector('[holo]').setAttribute('holo', { selectedContainer: this.el.id })
+
+    const object = event?.detail?.intersection?.object
+    if (object?.name === 'visible') {
+      if (this.isVisible === true) {
+        for (const child of this.el.children) {
+          child.setAttribute('visible', false)
+        }
+        this.el.getObject3D('mesh').visible = false
+        this.isVisible = false
+      } else {
+        for (const child of this.el.children) {
+          child.setAttribute('visible', true)
+        }
+        this.el.getObject3D('mesh').visible = true
+        this.isVisible = true
+      }
+    }
   },
 
   setContainerBox: function () {
-    const boxDepth = LAYER_SPACING * this.getDepthLayers() - 1
+    const boxDepth = LAYER_SPACING * this.getDepthLayers() - LAYER_SPACING
     const edges = new THREE.EdgesGeometry(new THREE.BoxGeometry(WIDTH, HEIGHT, boxDepth))
     const segments = new THREE.LineSegmentsGeometry().fromEdgesGeometry(edges)
     const material = new THREE.LineMaterial({
-  
       color: 0xffffff,
       worldUnits: true,
       linewidth: 0.02, // in pixels
       transparent: true,
       opacity: 0.5
-  
     })
     const mesh = new THREE.LineSegments2(segments, material)
     mesh.position.z = -boxDepth / 2 
@@ -99,10 +115,50 @@ export const container = AFRAME.registerComponent('container', {
     const depthLayerId = Math.random().toString(36).replace(/[^a-z]+/g, '')
     const depthContainerEl = loadContainer(depthLayerId, true)
     this.el.appendChild(depthContainerEl)
+    depthContainerEl.addEventListener('container.depthLayerReady', () => {
+      depthContainerEl.emit('click')
+    })
 
     if (updateCointanerBox) {
       this.setContainerBox()
     }
+  },
+
+  addTools: function () {
+    const boxGeometry = new THREE.CircleGeometry(boxSize / 2, 32)
+    const visibleTexture = new THREE.TextureLoader().load(`icons/visible.png`)
+    this.visible = new THREE.Mesh(boxGeometry.clone(),
+      new THREE.MeshBasicMaterial({ map: visibleTexture, color: '#FFFFFF', side: THREE.DoubleSide }))
+    this.visible.name = 'visible'
+    this.isVisible = true
+
+    const mesh = this.el.getObject3D('mesh')
+    const box3 = new THREE.Box3().setFromObject(mesh)
+    const meshDimensions = new THREE.Vector3().subVectors(box3.max, box3.min)
+    this.visible.position.set(
+      -meshDimensions.x / 2 - boxSize / 2 - 0.03,
+      meshDimensions.y / 2 - boxSize / 2,
+      0
+    )
+  },
+
+  addBox: function () {
+    const mesh = this.el.getObject3D('mesh')
+    this.el.sceneEl.object3D.add(mesh)
+    const box3 = new THREE.Box3().setFromObject(mesh)
+    const meshDimensions = new THREE.Vector3().subVectors(box3.max, box3.min)
+    this.el.object3D.add(mesh)
+
+    const boxGeo = new THREE.BoxGeometry(meshDimensions.x, meshDimensions.y, meshDimensions.z)
+    const edges = new THREE.EdgesGeometry(boxGeo)
+    const segments = new THREE.LineSegmentsGeometry().fromEdgesGeometry(edges)
+    const material = new THREE.LineMaterial({
+      color: 0xffffff,
+      worldUnits: true,
+      linewidth: 0.02 // in pixels
+    })
+    this.box = new THREE.LineSegments2(segments, material)
+    this.box.position.copy(mesh.position)
   },
 
   getDepthLayers: function () {

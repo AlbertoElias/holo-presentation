@@ -126,7 +126,8 @@ function addAssetToScene (entity, forceRoot = false) {
     const rootContainer = !Utils.getParentContainer(selectedContainer) ?
       selectedContainer.children[0] :
       selectedContainer
-      rootContainer.appendChild(entity)
+    entity.object3D.position.z += 0.05
+    rootContainer.appendChild(entity)
   } else {
     sceneEl.appendChild(entity)
     const cameraQuaternion = sceneEl.camera.el.object3D.quaternion
@@ -386,6 +387,9 @@ async function unpackObject (obj) {
 
   objWrapperEl.id = obj.id
   objWrapperEl.object3D.position.set(...obj.position)
+  if (!obj.isDepthLayer && obj.id !== 'bmmpeojo') {
+    objWrapperEl.object3D.position.z += 0.05
+  }
   objWrapperEl.object3D.rotation.set(...obj.rotation)
   objWrapperEl.object3D.scale.set(...obj.scale)
   return objWrapperEl
