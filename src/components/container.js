@@ -20,7 +20,8 @@ export const container = AFRAME.registerComponent('container', {
       const material = new THREE.MeshBasicMaterial({
         color: 0xffffff,
         transparent: true,
-        opacity: 0.5,
+        opacity: 0.7,
+        depthWrite: false,
         side: THREE.DoubleSide
       })
       const mesh = new THREE.Mesh(geometry, material)
@@ -103,7 +104,8 @@ export const container = AFRAME.registerComponent('container', {
       worldUnits: true,
       linewidth: 0.02, // in pixels
       transparent: true,
-      opacity: 0.5
+      opacity: 0.5,
+      side: THREE.DoubleSide
     })
     const mesh = new THREE.LineSegments2(segments, material)
     mesh.position.z = -boxDepth / 2 

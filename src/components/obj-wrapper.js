@@ -82,8 +82,7 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
         this.el.id
 
       this.el.sceneEl.setAttribute('holo', {
-        selectedContainer: selectedContainerId,
-        isFixed: this.isContainer()
+        selectedContainer: selectedContainerId
       })
     } else if (!data.active && oldData.active) {
       if (!this.isContainer() || getParentContainer(this.el)) {
@@ -100,7 +99,6 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
   },
 
   tick: function () {
-    const isFixed = this.el.sceneEl.getAttribute('holo').isFixed
 
     if (!this.box) {
       this.setUpBox()
@@ -108,17 +106,15 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
     }
 
     if (this.activeAction?.name === 'move') {
-      if (!isFixed) {
-        const camera = this.el.sceneEl.camera.el.object3D
-        const position = frontVector.clone().applyQuaternion(camera.quaternion).multiplyScalar(-1)
-        const newCameraPosition = this.movementControls.object3D.position.clone().add(position)
-        if (this.cameraPosition.x === 0 && this.cameraPosition.y === 0 && this.cameraPosition.z === 0) {
-          this.cameraPosition.copy(newCameraPosition)
-        }
-        const cameraDiff = this.cameraPosition.sub(newCameraPosition).multiplyScalar(-1)
-        this.el.object3D.position.add(cameraDiff)
+      const camera = this.el.sceneEl.camera.el.object3D
+      const position = frontVector.clone().applyQuaternion(camera.quaternion).multiplyScalar(-1)
+      const newCameraPosition = this.movementControls.object3D.position.clone().add(position)
+      if (this.cameraPosition.x === 0 && this.cameraPosition.y === 0 && this.cameraPosition.z === 0) {
         this.cameraPosition.copy(newCameraPosition)
       }
+      const cameraDiff = this.cameraPosition.sub(newCameraPosition).multiplyScalar(-1)
+      this.el.object3D.position.add(cameraDiff)
+      this.cameraPosition.copy(newCameraPosition)
     }
 
     if (this.grabbingHand && this.currentParentContainer !== null) {
@@ -143,6 +139,7 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
   clickHandler: function (event) {
     event?.stopPropagation()
     const object = event?.detail?.intersection?.object
+    console.log(object, this.data.active, this.el)
 
     if (!this.data.active) {
       this.el.setAttribute('obj-wrapper', 'active: true')
@@ -205,9 +202,6 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
       this.cameraPosition.set(0, 0, 0)
       document.addEventListener('mousemove', this.mouseMoveHandler)
       document.addEventListener('mouseout', this.mouseUpHandler)
-      this.el.sceneEl.setAttribute('holo', {
-        isFixed: false
-      })
     }
   },
 
@@ -215,19 +209,14 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
     this.activeAction = null
     document.removeEventListener('mousemove', this.mouseMoveHandler)
     document.removeEventListener('mouseout', this.mouseUpHandler)
-    this.el.sceneEl.setAttribute('holo', {
-      isFixed: this.isContainer()
-    })
 
     if (this.currentParentContainer) {
       const currentParentContainerMesh = this.currentParentContainer.getObject3D('mesh')
       currentParentContainerMesh?.material.color.setHex(0xffffff)
-      currentParentContainerMesh.material.transparent = true
     }
     if (this.currentParentContainer !== this.newParentContainer) {
       const newParentContainerMesh = this.newParentContainer.getObject3D('mesh')
-      newParentContainerMesh.material.color.setHex(0x24b59f)
-      newParentContainerMesh.material.transparent = true
+      newParentContainerMesh.material.color.setHex(0xffffff)
       this.changeParent()
     }
   },
@@ -259,6 +248,10 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
   setUpBox: function () {
     const mesh = this.el.getObject3D('mesh')
     if (!mesh) return
+
+    if (this.data.type === 'text' && isNaN(mesh.geometry.parameters.width)) {
+      return
+    }
     
     // Temporarily makes the object a child of the scene so the bounding box ignores any parent transforms
     this.el.sceneEl.object3D.add(mesh)
@@ -321,7 +314,7 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
     this.tools.position.set(
       this.box.position.x + meshDimensions.x / 2 + boxSize / 2 + 0.03,
       this.box.position.y - meshDimensions.y / 2 - boxSize / 2,
-      this.box.position.z + meshDimensions.z / 2
+      this.box.position.z + meshDimensions.z / 2 + 0.03
     )
 
     this.resize.position.y = boxSize
@@ -337,7 +330,7 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
       const closePosition = new THREE.Vector3(
         this.box.position.x + meshDimensions.x / 2 + boxSize / 2 + 0.03,
         this.box.position.y + meshDimensions.y / 2 - boxSize / 2,
-        this.box.position.z + meshDimensions.z / 2
+        this.box.position.z + meshDimensions.z / 2 + 0.03
       )
       this.close.position.copy(this.tools.worldToLocal(closePosition))
     }
@@ -362,14 +355,14 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
     const containers = this.getAllOtherContainers()
     for (const container of containers) {
       const containerBox = new THREE.Box3().setFromObject(container.getObject3D('mesh'))
+      containerBox.min.z -= 0.5
+      containerBox.max.z += 0.5
       if (containerBox.containsPoint(boxCenter)) {
         const previousParentContainerMesh = this.newParentContainer.getObject3D('mesh')
         previousParentContainerMesh.material.color.setHex(0xffffff)
-        previousParentContainerMesh.material.transparent = true
         this.newParentContainer = container
         const newParentContainerMesh = container.getObject3D('mesh')
         newParentContainerMesh.material.color.setHex(0xFFAA01)
-        previousParentContainerMesh.material.transparent = false
         break
       }
     }
@@ -404,7 +397,6 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
     // We need to store it as an object to then be able to save it in storage
     for (const id of Object.keys(currentObjectData)) {
       const newObject = copy.id === id ? copy : copy.querySelector(`#${id}`)
-      console.log('setting', newObject)
       newObject.setAttribute('obj-wrapper', currentObjectData[id])
     }
     // Make sure new object is not active, as this will try to load box in #update()
@@ -415,6 +407,7 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
     this.newParentContainer.object3D.worldToLocal(position)
     this.newParentContainer.object3D.worldToLocal(scale)
     copy.object3D.position.copy(position)
+    copy.object3D.position.z = 0.02
     copy.object3D.scale.copy(this.el.object3D.scale)
     copy.object3D.quaternion.copy(rotation)
   

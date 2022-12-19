@@ -19,7 +19,7 @@ function loadText (text, id) {
     value: text,
     color: 'white',
     side: 'double',
-    wrapCount: text.length > 24 ? 24 : text.length,
+    wrapCount: text.length > 24 ? 24 : text.length + 1,
     width: 1
   })
   textEl.setAttribute('obj-wrapper', {
@@ -75,6 +75,9 @@ function loadImage (asset, id) {
     type: 'image',
     asset: { main: asset },
     id
+  })
+  aImageEl.setAttribute('material', {
+    transparent: false
   })
   return aImageEl
 }

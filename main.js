@@ -2,6 +2,7 @@ import Dexie from 'dexie'
 import { SimpleDropzone } from 'simple-dropzone'
 
 import './style.css'
+import { Example1 } from './src/examples/1'
 import * as Utils from './src/utils'
 import {
   loadContainer,
@@ -126,7 +127,8 @@ function addAssetToScene (entity, forceRoot = false) {
     const rootContainer = !Utils.getParentContainer(selectedContainer) ?
       selectedContainer.children[0] :
       selectedContainer
-    entity.object3D.position.z += 0.05
+    entity.object3D.position.z += 0.005
+    console.log(entity.object3D)
     rootContainer.appendChild(entity)
   } else {
     sceneEl.appendChild(entity)
@@ -387,9 +389,6 @@ async function unpackObject (obj) {
 
   objWrapperEl.id = obj.id
   objWrapperEl.object3D.position.set(...obj.position)
-  if (!obj.isDepthLayer && obj.id !== 'bmmpeojo') {
-    objWrapperEl.object3D.position.z += 0.05
-  }
   objWrapperEl.object3D.rotation.set(...obj.rotation)
   objWrapperEl.object3D.scale.set(...obj.scale)
   return objWrapperEl
@@ -408,10 +407,18 @@ window.addEventListener('load', () => {
   db.holos.toArray()
     .then(async (storedHolos) => {
       for (const storedHolo of storedHolos) {
+        console.log(JSON.stringify(storedHolo))
         const unpackedHolo = await unpackTree(storedHolo)
         sceneEl.appendChild(unpackedHolo)
+        unpackedHolo.object3D.updateMatrixWorld(true)
       }
     })
+})
+
+document.querySelector('#example1').addEventListener('click', async () => {
+  const unpackedHolo = await unpackTree(Example1)
+  sceneEl.appendChild(unpackedHolo)
+  unpackedHolo.object3D.updateMatrixWorld(true)
 })
 
 textInputEl.addEventListener('input', () => {
