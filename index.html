@@ -37,6 +37,7 @@
         <img id="keyboard-controls" src="keyboard-controls.png">
         <img id="vr-controls" src="vr-controls.png">
         <img id="example1-image" src="example1.png">
+        <img id="example2-image" src="example2.png">
       </a-assets>
 
       <a-gltf-model id="model" src="#scene" position="0 0 0" rotation="0 0 0"></a-gltf-model>
@@ -65,7 +66,7 @@
         <a-entity id="handRight" super-hands laser-controls="hand: right" mixin="point"></a-entity>
       </a-entity>
 
-      <a-plane id="info" width="4" height="2" color="#FFF" position="0 1.5 -1.8" material="side: double; color: #191923" visible="true">
+      <a-plane id="info" width="4" height="2" color="#FFF" position="0 1.5 4.7" material="side: double; color: #191923" visible="true">
         <a-plane width="1" height="2" position="-1.5 00 0.002" material="color: #222230" tabs="active: getting-started-tab">
           <a-plane id="getting-started-tab" mixin="tab" position="0 0.8 0.005" text="value: Getting Started;" class="collidable"
             tab="getting-started" onclick="this.parentEl.setAttribute('tabs', {active: this.id})"></a-plane>
@@ -76,7 +77,7 @@
         </a-plane>
 
         <a-entity id="getting-started" position="-0.9 0.8 0" visible="false">
-\         <a-text color="#FFFFFF" position="0 0 0" width="2.8" value="1. Create a container"></a-text>
+          <a-text color="#FFFFFF" position="0 0 0" width="2.8" value="1. Create a container"></a-text>
           <a-text color="#FFFFFF" position="0 -0.3 0" width="2.8" value="2. Add text, emojis, images, 3D models, or other containers"></a-text>
           <a-text color="#FFFFFF" position="0 -0.6 0" width="2.8" value="3. Add depth layers to your container"></a-text>
           <a-text color="#FFFFFF" position="0 -0.8 0" width="2.8" value="4. Save your presentation"></a-text>
@@ -94,7 +95,7 @@
             <a-text width="1.6" value="How to use Holo Presentation" position="-0.5 -0.3 0"></a-text>
           </a-plane>
           <a-plane id="example2" class="collidable" material="transparent: true; opacity: 0;" width="1" height="0.8" position="1.2 0 0.01">
-            <a-image transparent="true" src="#keyboard-controls" material="transparent: false;" height="0.6" position="0 0.1 0"></a-image>
+            <a-image transparent="true" src="#example2-image" material="transparent: false;" height="0.6" position="0 0.1 0"></a-image>
             <a-text width="1.6" wrapCount="28" value="History of GUIs" position="-0.5 -0.3 0"></a-text>
           </a-plane>
           <a-plane class="collidable" material="transparent: true; opacity: 0;" width="1" height="0.8" position="0 -0.9 0.01">

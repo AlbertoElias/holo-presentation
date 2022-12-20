@@ -9,15 +9,14 @@ function generate3dEmojiFromSvg (emojiHex) {
       for (const path of data.paths) {
         const material = new THREE.MeshBasicMaterial( {
           color: path.userData.style.fill,
-          depthWrite: false,
-          opacity: 1
+          depthWrite: true
         })
 
         const shapes = path.toShapes(true)
         for (const shape of shapes) {
           const geometry = new THREE.ExtrudeGeometry(shape, {
-            depth: 1.5,
-            bevelEnabled: false
+            depth: 1,
+            bevelEnabled: true
           })
           const mesh = new THREE.Mesh(geometry, material)
           group.add(mesh)

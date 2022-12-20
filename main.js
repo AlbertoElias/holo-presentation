@@ -3,6 +3,7 @@ import { SimpleDropzone } from 'simple-dropzone'
 
 import './style.css'
 import { Example1 } from './src/examples/1'
+import { Example2 } from './src/examples/2'
 import * as Utils from './src/utils'
 import {
   loadContainer,
@@ -267,6 +268,7 @@ document.addEventListener('keydown', (event) => {
       if (isTextInputVisible()) {
         return
       }
+      console.log('visualizing')
 
       toggleVisualizing()
       break
@@ -417,6 +419,12 @@ window.addEventListener('load', () => {
 
 document.querySelector('#example1').addEventListener('click', async () => {
   const unpackedHolo = await unpackTree(Example1)
+  sceneEl.appendChild(unpackedHolo)
+  unpackedHolo.object3D.updateMatrixWorld(true)
+})
+
+document.querySelector('#example2').addEventListener('click', async () => {
+  const unpackedHolo = await unpackTree(Example2)
   sceneEl.appendChild(unpackedHolo)
   unpackedHolo.object3D.updateMatrixWorld(true)
 })
