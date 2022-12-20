@@ -129,7 +129,6 @@ function addAssetToScene (entity, forceRoot = false) {
       selectedContainer.children[0] :
       selectedContainer
     entity.object3D.position.z += 0.005
-    console.log(entity.object3D)
     rootContainer.appendChild(entity)
   } else {
     sceneEl.appendChild(entity)
@@ -175,9 +174,25 @@ function toggleInfo () {
   const infoEl = document.querySelector('#info')
   if (infoEl.getAttribute('visible')) {
     infoEl.setAttribute('visible', false)
+    document.querySelector('#example1').removeEventListener('click', addExample1)
+    document.querySelector('#example2').removeEventListener('click', addExample2)
   } else {
     infoEl.setAttribute('visible', true)
+    document.querySelector('#example1').addEventListener('click', addExample1)
+    document.querySelector('#example2').addEventListener('click', addExample2)
   }
+}
+
+async function addExample1 () {
+  const unpackedHolo = await unpackTree(Example1)
+  sceneEl.appendChild(unpackedHolo)
+  unpackedHolo.object3D.updateMatrixWorld(true)
+}
+
+async function addExample2 () {
+  const unpackedHolo = await unpackTree(Example2)
+  sceneEl.appendChild(unpackedHolo)
+  unpackedHolo.object3D.updateMatrixWorld(true)
 }
 
 function saveHolo () {
@@ -188,7 +203,6 @@ function saveHolo () {
       selectedContainer.parentEl :
       selectedContainer
     const tree = buildTree(rootContainer)
-    console.log(tree)
     db.holos.put(tree)
   } else {
     db.holos.toArray()
@@ -415,18 +429,6 @@ window.addEventListener('load', () => {
         unpackedHolo.object3D.updateMatrixWorld(true)
       }
     })
-})
-
-document.querySelector('#example1').addEventListener('click', async () => {
-  const unpackedHolo = await unpackTree(Example1)
-  sceneEl.appendChild(unpackedHolo)
-  unpackedHolo.object3D.updateMatrixWorld(true)
-})
-
-document.querySelector('#example2').addEventListener('click', async () => {
-  const unpackedHolo = await unpackTree(Example2)
-  sceneEl.appendChild(unpackedHolo)
-  unpackedHolo.object3D.updateMatrixWorld(true)
 })
 
 textInputEl.addEventListener('input', () => {

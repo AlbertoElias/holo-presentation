@@ -34,6 +34,8 @@ export const container = AFRAME.registerComponent('container', {
         this.addBox()
         const index = [...this.el.parentEl.children].indexOf(this.el)
         this.el.object3D.position.z = -index * LAYER_SPACING + DEPTH_LAYER_OFFSET
+        this.el.object3D.position.x = 3 * index
+        // this.el.object3D.rotation.y = -30 * Math.PI / 180
         this.clickHandler = this.clickHandler.bind(this)
         this.el.addEventListener('click', this.clickHandler)
         this.el.addEventListener('container.deactivate', () => {
@@ -96,23 +98,16 @@ export const container = AFRAME.registerComponent('container', {
   },
 
   setContainerBox: function () {
-    const boxDepth = LAYER_SPACING * this.getDepthLayers() - LAYER_SPACING
-    const edges = new THREE.EdgesGeometry(new THREE.BoxGeometry(WIDTH, HEIGHT, boxDepth))
-    const segments = new THREE.LineSegmentsGeometry().fromEdgesGeometry(edges)
-    const material = new THREE.LineMaterial({
-      color: 0xffffff,
-      worldUnits: true,
-      linewidth: 0.02, // in pixels
+    const geometry = new THREE.PlaneGeometry(WIDTH, HEIGHT)
+    const material = new THREE.MeshBasicMaterial({
       transparent: true,
-      opacity: 0.5,
-      side: THREE.DoubleSide
+      opacity: 0
     })
-    const mesh = new THREE.LineSegments2(segments, material)
-    mesh.position.z = -boxDepth / 2 
+    const mesh = new THREE.Mesh(geometry, material)
     this.el.setObject3D('mesh', mesh)
   },
 
-  addDepthLayer: function (updateCointanerBox = true) {
+  addDepthLayer: function () {
     // We set the the ID beforehand so obj-wrapper can set it as the selectedContainer on load
     const depthLayerId = Math.random().toString(36).replace(/[^a-z]+/g, '')
     const depthContainerEl = loadContainer(depthLayerId, true)
@@ -120,10 +115,6 @@ export const container = AFRAME.registerComponent('container', {
     depthContainerEl.addEventListener('container.depthLayerReady', () => {
       depthContainerEl.emit('click')
     })
-
-    if (updateCointanerBox) {
-      this.setContainerBox()
-    }
   },
 
   addTools: function () {

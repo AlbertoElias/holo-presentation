@@ -99,7 +99,6 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
   },
 
   tick: function () {
-
     if (!this.box) {
       this.setUpBox()
       return
@@ -139,7 +138,6 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
   clickHandler: function (event) {
     event?.stopPropagation()
     const object = event?.detail?.intersection?.object
-    console.log(object, this.data.active, this.el)
 
     if (!this.data.active) {
       this.el.setAttribute('obj-wrapper', 'active: true')

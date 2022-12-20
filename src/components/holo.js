@@ -175,7 +175,7 @@ export const holo = AFRAME.registerComponent('holo', {
   },
 
   toggleContainerMeshes: function (isVisible) {
-    const containerChildren = this.el.querySelectorAll('[container]')
+    const containerChildren = visualizationState.selectedRootObject.querySelectorAll(':scope > [container]')
     containerChildren.forEach(child => child.getObject3D('mesh').visible = isVisible)
   }
 })
