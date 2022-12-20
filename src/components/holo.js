@@ -73,18 +73,28 @@ export const holo = AFRAME.registerComponent('holo', {
       }
 
       const selectedContainer = this.el.sceneEl.querySelector(`#${this.data.selectedContainer}`)
-      const correctSelectedContainer = !selectedContainer.hasAttribute('obj-wrapper') ?
-        selectedContainer.parentEl :
-        selectedContainer
-      const rootContainer = getRootContainer(correctSelectedContainer)
+      const rootContainer = getRootContainer(selectedContainer)
       
-      visualizationState.initialObject = correctSelectedContainer
-      visualizationState.selectedObject = correctSelectedContainer
+      visualizationState.initialObject = selectedContainer
+      visualizationState.selectedObject = selectedContainer
       visualizationState.selectedRootObject = rootContainer
       visualizationState.selectedRootObjectPosition.copy(rootContainer.object3D.position)
+
+      if (rootContainer.children[0] === selectedContainer) {
+        visualizationState.initialObject = rootContainer
+        visualizationState.selectedObject = rootContainer
+      }
   
-      correctSelectedContainer.removeObject3D('tools')
+      if (!selectedContainer.hasAttribute('obj-wrapper')) {
+        rootContainer.removeObject3D('tools')
+        selectedContainer.removeObject3D('box')
+        selectedContainer.removeObject3D('visible')
+      } else {
+        selectedContainer.removeObject3D('tools')
+      }
+
       this.toggleContainerMeshes(false)
+      this.updateSelectedObjectPosition()
 
       document.addEventListener('keydown', this.keyDownHandler)
       this.rightHand.addEventListener('thumbstickmoved', this.thumbstickMovedHandler)
@@ -183,19 +193,24 @@ function visualizeRight () {
     return
   }
 
-  const nextParentSibling = visualizationState.selectedObject.parentEl.nextSibling
-  if (nextParentSibling && visualizationState.initialObject.contains(nextParentSibling)) {
+  let selectedObjectParent = visualizationState.selectedObject.parentEl
+  let nextParentSibling = selectedObjectParent.nextSibling
+  while (!nextParentSibling) {
+    selectedObjectParent = selectedObjectParent.parentEl
+    nextParentSibling = selectedObjectParent.nextSibling
+  }
+  if (nextParentSibling && visualizationState.selectedRootObject.contains(nextParentSibling)) {
     visualizationState.selectedObject = nextParentSibling
     return
   }
 
   // If we are at the end, start from the beginning
-  visualizationState.selectedObject = visualizationState.initialObject
+  visualizationState.selectedObject = visualizationState.selectedRootObject
 }
 
 function visualizeLeft () {
   // We are already at the beginning and it makes no sense to go back
-  if (visualizationState.selectedObject === visualizationState.initialObject) {
+  if (visualizationState.selectedObject === visualizationState.selectedRootObject) {
     const lastRootChild = findLastChild(visualizationState.selectedObject)
     visualizationState.selectedObject = lastRootChild
     return
@@ -214,7 +229,7 @@ function visualizeLeft () {
   }
 
   const parent = visualizationState.selectedObject.parentEl
-  if (parent && visualizationState.initialObject.contains(parent)) {
+  if (parent && visualizationState.selectedRootObject.contains(parent)) {
     visualizationState.selectedObject = parent
     return
   }
