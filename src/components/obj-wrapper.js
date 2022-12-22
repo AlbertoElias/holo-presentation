@@ -238,7 +238,13 @@ export const objWrapper = AFRAME.registerComponent('obj-wrapper', {
     this.el.parentEl.object3D.attach(this.el.object3D)
     this.grabbingHand.object3D.remove(pivot)
     this.grabbingHand = null
+    if (this.currentParentContainer) {
+      const currentParentContainerMesh = this.currentParentContainer.getObject3D('mesh')
+      currentParentContainerMesh?.material.color.setHex(0xffffff)
+    }
     if (this.currentParentContainer !== this.newParentContainer) {
+      const newParentContainerMesh = this.newParentContainer.getObject3D('mesh')
+      newParentContainerMesh.material.color.setHex(0xffffff)
       this.changeParent()
     }
   },

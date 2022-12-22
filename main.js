@@ -170,6 +170,9 @@ function toggleVisualizing () {
   }
 }
 
+// It starts off visible
+document.querySelector('#example1').addEventListener('click', addExample1)
+document.querySelector('#example2').addEventListener('click', addExample2)
 function toggleInfo () {
   const infoEl = document.querySelector('#info')
   if (infoEl.getAttribute('visible')) {
@@ -423,7 +426,6 @@ window.addEventListener('load', () => {
   db.holos.toArray()
     .then(async (storedHolos) => {
       for (const storedHolo of storedHolos) {
-        console.log(JSON.stringify(storedHolo))
         const unpackedHolo = await unpackTree(storedHolo)
         sceneEl.appendChild(unpackedHolo)
         unpackedHolo.object3D.updateMatrixWorld(true)

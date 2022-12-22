@@ -171,6 +171,9 @@ export const holo = AFRAME.registerComponent('holo', {
     const diff = visualizationState.selectedObjectPosition
       .sub(visualizationState.cameraPosition)
     diff.z += cameraZ
+    if (this.el.sceneEl.renderer.xr.isPresenting) {
+      diff.z += 0.5
+    }
     rootObject.position.sub(diff)
   },
 

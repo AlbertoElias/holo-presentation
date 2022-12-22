@@ -13,7 +13,7 @@
     <script src="/aframe-super-keyboard.js"></script>
   </head>
   <body class="app">
-    <a-scene renderer="antialias: true" cursor="rayOrigin: mouse" raycaster="far: 20; objects: .collidable" keyboard-shortcuts="enterVR: false" holo>
+    <a-scene renderer="antialias: true" cursor="rayOrigin: mouse" raycaster="far: 20; objects: .collidable" keyboard-shortcuts="enterVR: false" loading-screen="enabled: false" holo>
       <a-assets id="assets">
         <a-mixin id="point"
           raycaster="far: 10; objects: .collidable; lineColor: #ffffff; threshold: 0.1"
@@ -33,33 +33,20 @@
           >
         </a-mixin>
 
-        <a-asset-item id="scene" src="scene.glb"></a-asset-item>
+        <a-asset-item id="scene" src="scifi.glb"></a-asset-item>
         <img id="keyboard-controls" src="keyboard-controls.png">
         <img id="vr-controls" src="vr-controls.png">
         <img id="example1-image" src="example1.png">
         <img id="example2-image" src="example2.png">
       </a-assets>
 
-      <!-- <a-gltf-model id="model" src="#scene" position="0 0 0" rotation="0 0 0"></a-gltf-model> -->
-
-      <a-entity environment="
-        ground: canyon;
-        groundTexture: walkernoise;
-        grid: none;
-        groundColor: #C09891;
-        groundColor2: #394032;
-        groundYScale: 20;
-        playArea: 1.5;
-        dressing: trees;
-        dressingAmount: 40;
-        dressingScale: 1;
-        dressingColor: #829471;
-        skyType: gradient;
-        skyColor: #24b59f;
-        horizonColor: #eff9b7;
-        fog: 0.5;
-      "></a-entity>
-
+      <a-gltf-model id="model" src="#scene" position="0 -30 5" rotation="0 0 0" animation-mixer hide-on-enter-ar></a-gltf-model>
+      <a-entity light="type: ambient; color: #BBB"></a-entity>
+      <a-light type="directional" position="0 50 0" color="#fff" intensity="5"></a-light>
+      <a-light type="directional" position="0 50 0" color="#fff" intensity="3" rotation="0 0 0" target="#directionaltarget">
+        <a-entity id="directionaltarget" position="0 100 0"></a-entity>
+      </a-light>
+  
       <a-entity id="rig" movement-controls="speed: 0.2" position="0 0 6.5">
         <a-entity camera="fov: 80" look-controls position="0 1.6 0"></a-entity>
         <a-entity id="handLeft" super-hands laser-controls="hand: left" mixin="point"></a-entity>
@@ -90,17 +77,13 @@
         </a-entity>
 
         <a-entity id="examples" position="-0.3 0.4 0" visible="false">
-          <a-plane id="example1" class="collidable" material="transparent: true; opacity: 0;" width="1" height="0.8" position="0 0 0.01">
+          <a-plane id="example1" class="collidable" material="transparent: true; opacity: 0;" width="1" height="0.8" position="0 0 0.02">
             <a-image src="#example1-image" material="transparent: false;" height="0.6" position="0 0.1 0"></a-image>
             <a-text width="1.6" value="How to use Holo Presentation" position="-0.5 -0.3 0"></a-text>
           </a-plane>
-          <a-plane id="example2" class="collidable" material="transparent: true; opacity: 0;" width="1" height="0.8" position="1.2 0 0.01">
+          <a-plane id="example2" class="collidable" material="transparent: true; opacity: 0;" width="1" height="0.8" position="1.2 0 0.02">
             <a-image transparent="true" src="#example2-image" material="transparent: false;" height="0.6" position="0 0.1 0"></a-image>
             <a-text width="1.6" wrapCount="28" value="History of GUIs" position="-0.5 -0.3 0"></a-text>
-          </a-plane>
-          <a-plane class="collidable" material="transparent: true; opacity: 0;" width="1" height="0.8" position="0 -0.9 0.01">
-            <a-image transparent="true" src="#keyboard-controls" material="transparent: false;" height="0.6" position="0 0.1 0"></a-image>
-            <a-text width="1.6" wrapCount="28" value="Another example" position="-0.5 -0.3 0"></a-text>
           </a-plane>
         </a-entity>
       </a-plane>
