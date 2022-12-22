@@ -77,12 +77,14 @@
         </a-entity>
 
         <a-entity id="examples" position="-0.3 0.4 0" visible="false">
-          <a-plane id="example1" class="collidable" material="transparent: true; opacity: 0;" width="1" height="0.8" position="0 0 0.02">
-            <a-image src="#example1-image" material="transparent: false;" height="0.6" position="0 0.1 0"></a-image>
+          <a-plane id="example1" class="collidable" material="transparent: true; opacity: 0;" width="1" height="0.8" position="0 0 0.01">
+            <a-image src="#example1-image" material="transparent: true;" height="0.6" position="0 0.1 0"></a-image>
+            <a-plane material="color: #ffffff; transparent: true; opacity: 0.2;" height="0.6" position="0 0.1 0"></a-plane>
             <a-text width="1.6" value="How to use Holo Presentation" position="-0.5 -0.3 0"></a-text>
           </a-plane>
-          <a-plane id="example2" class="collidable" material="transparent: true; opacity: 0;" width="1" height="0.8" position="1.2 0 0.02">
+          <a-plane id="example2" class="collidable" material="transparent: true; opacity: 0;" width="1" height="0.8" position="1.2 0 0.01">
             <a-image transparent="true" src="#example2-image" material="transparent: false;" height="0.6" position="0 0.1 0"></a-image>
+            <a-plane material="color: #ffffff; transparent: true; opacity: 0.2;" height="0.6" position="0 0.1 0"></a-plane>
             <a-text width="1.6" wrapCount="28" value="History of GUIs" position="-0.5 -0.3 0"></a-text>
           </a-plane>
         </a-entity>

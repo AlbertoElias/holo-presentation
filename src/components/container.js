@@ -34,8 +34,7 @@ export const container = AFRAME.registerComponent('container', {
         this.addBox()
         const index = [...this.el.parentEl.children].indexOf(this.el)
         this.el.object3D.position.z = -index * LAYER_SPACING + DEPTH_LAYER_OFFSET
-        this.el.object3D.position.x = 3 * index
-        // this.el.object3D.rotation.y = -30 * Math.PI / 180
+        // this.el.object3D.position.x = 3 * index
         this.clickHandler = this.clickHandler.bind(this)
         this.el.addEventListener('click', this.clickHandler)
         this.el.addEventListener('container.deactivate', () => {
